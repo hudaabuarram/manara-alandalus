@@ -1,0 +1,6 @@
+{
+  "name": "نظام إدارة المدرسة الاحترافي",
+  "description": "نظام إدارة مدارس متكامل ومحترف للفصول، الحضور، الجدول الدراسي، الرسوم الدراسية، والتقارير بمستويات أداء عالمية.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
