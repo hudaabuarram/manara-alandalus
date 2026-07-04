@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   School, Mail, Lock, Eye, EyeOff, Globe, Check, 
-  ArrowRight, Shield, Sparkles, BookOpen, KeyRound, AlertCircle, Info
+  ArrowRight, Shield, Sparkles, BookOpen, KeyRound, AlertCircle, Info,
+  User, Phone
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -12,13 +13,17 @@ interface LoginViewProps {
 }
 
 export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [selectedRole, setSelectedRole] = useState<UserRole>('admin');
+  const [selectedRole, setSelectedRole] = useState<UserRole>('parent');
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
@@ -53,6 +58,23 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
       resetSuccessMsg: 'تم إرسال رابط الاستعادة إلى بريدك الإلكتروني بنجاح!',
       language: 'English',
       selectLang: 'تغيير اللغة',
+      // Sign Up specific translations (Arabic)
+      signUpTitle: 'إنشاء حساب جديد بالبوابة',
+      signUpSubtitle: 'سجل الآن للانضمام إلى منصة منارة الأندلس التعليمية والمالية الذكية.',
+      fullName: 'الاسم الكامل للمستخدم',
+      fullNamePlaceholder: 'أدخل اسمك الثلاثي المعتمد بالهوية',
+      confirmPassword: 'تأكيد كلمة المرور',
+      confirmPasswordPlaceholder: 'أعد كتابة كلمة المرور للتحقق',
+      phone: 'رقم جوال تواصل ولي الأمر / المعلم',
+      phonePlaceholder: '05xxxxxxxx',
+      signUpBtn: 'إنشاء الحساب وتفعيل البوابة فوراً',
+      alreadyHaveAccount: 'هل لديك حساب مفعل بالفعل بالمنظومة؟',
+      goToLogin: 'تسجيل الدخول الآن',
+      dontHaveAccount: 'هل أنت ولي أمر أو معلم جديد؟',
+      goToSignUp: 'سجل الآن كعضو جديد',
+      successSignUp: 'تم إنشاء وتوثيق الحساب الجديد بنجاح! جاري توجيهك للوحة...',
+      passwordMismatch: 'تنبيه: كلمات المرور غير متطابقة، يرجى إعادة المحاولة.',
+      roleLabel: 'الصفة / الدور المقيد بالبوابة'
     },
     en: {
       systemName: 'Manarat Al-Andalus',
@@ -82,6 +104,23 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
       resetSuccessMsg: 'Recovery link has been successfully sent to your email!',
       language: 'العربية',
       selectLang: 'Change Language',
+      // Sign Up specific translations (English)
+      signUpTitle: 'Create a New Account',
+      signUpSubtitle: 'Register now to join the Manarat Al-Andalus smart educational and financial portal.',
+      fullName: 'Full Name (User)',
+      fullNamePlaceholder: 'Enter your full matching registered name',
+      confirmPassword: 'Confirm Password',
+      confirmPasswordPlaceholder: 'Re-type your password for verification',
+      phone: 'Guardian / Teacher Phone Number',
+      phonePlaceholder: '05xxxxxxxx',
+      signUpBtn: 'Register & Activate Portal Access',
+      alreadyHaveAccount: 'Already registered on the platform?',
+      goToLogin: 'Sign In Now',
+      dontHaveAccount: 'Are you a new guardian or teacher?',
+      goToSignUp: 'Register a New Account',
+      successSignUp: 'Account registered and authorized successfully! Redirecting...',
+      passwordMismatch: 'Error: Passwords do not match! Please check.',
+      roleLabel: 'Role / Capacity in the Portal'
     }
   }[lang];
 
@@ -95,6 +134,7 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
   ];
 
   const handleQuickFill = (role: UserRole, demoEmail: string) => {
+    setIsSignUp(false);
     setSelectedRole(role);
     setEmail(demoEmail);
     setPassword('123456');
@@ -115,6 +155,27 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
     setTimeout(() => {
       onLogin(selectedRole, email);
     }, 1200);
+  };
+
+  const handleSignUpSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!fullName || !email || !password || !confirmPassword || !phone) {
+      setError(t.errorInvalid);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError(t.passwordMismatch);
+      return;
+    }
+
+    setSuccess(t.successSignUp);
+    setTimeout(() => {
+      onLogin(selectedRole, email);
+    }, 1500);
   };
 
   const handleResetSubmit = (e: React.FormEvent) => {
@@ -230,8 +291,8 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
           </div>
 
           <div className="space-y-2 text-center lg:text-right" style={{ textAlign: lang === 'ar' ? 'right' : 'left' }}>
-            <h2 className="text-2xl font-serif font-bold text-gray-950 tracking-tight">{t.loginTitle}</h2>
-            <p className="text-xs text-gray-500 leading-relaxed font-sans">{t.loginSubtitle}</p>
+            <h2 className="text-2xl font-serif font-bold text-gray-950 tracking-tight">{isSignUp ? t.signUpTitle : t.loginTitle}</h2>
+            <p className="text-xs text-gray-500 leading-relaxed font-sans">{isSignUp ? t.signUpSubtitle : t.loginSubtitle}</p>
           </div>
 
           {/* Error and Success Alert Banners */}
@@ -250,11 +311,13 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
           )}
 
           {/* The form */}
-          <form onSubmit={handleLoginSubmit} className="mt-8 space-y-4" id="login-form">
+          <form onSubmit={isSignUp ? handleSignUpSubmit : handleLoginSubmit} className="mt-8 space-y-4" id="login-form">
             
             {/* Role Select tab segmented control */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-gray-700">{lang === 'ar' ? 'المستوى الوظيفي المالي والأكاديمي' : 'Access Level'}</label>
+              <label className="block text-xs font-bold text-gray-700">
+                {isSignUp ? t.roleLabel : (lang === 'ar' ? 'المستوى الوظيفي المالي والأكاديمي' : 'Access Level')}
+              </label>
               <div className="grid grid-cols-5 gap-1 bg-gray-100/80 p-1 rounded-xl border border-gray-200/50">
                 {(['admin', 'supervisor', 'teacher', 'student', 'parent'] as UserRole[]).map((r) => {
                   const roleLabels = {
@@ -282,6 +345,54 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
               </div>
             </div>
 
+            {/* Full Name field (Sign Up Only) */}
+            {isSignUp && (
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700" htmlFor="fullname-input">
+                  {t.fullName}
+                </label>
+                <div className="relative">
+                  <input
+                    id="fullname-input"
+                    type="text"
+                    required
+                    placeholder={t.fullNamePlaceholder}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-gray-50/50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-blue-600 rounded-xl py-2.5 pr-10 pl-4 text-xs font-medium text-gray-800 outline-none transition-all"
+                    style={{ textAlign: lang === 'ar' ? 'right' : 'left', direction: lang === 'ar' ? 'rtl' : 'ltr' }}
+                  />
+                  <div className={`absolute top-1/2 -translate-y-1/2 text-gray-400`} style={{ right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto' }}>
+                    <User size={16} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Phone field (Sign Up Only) */}
+            {isSignUp && (
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700" htmlFor="phone-input">
+                  {t.phone}
+                </label>
+                <div className="relative">
+                  <input
+                    id="phone-input"
+                    type="tel"
+                    required
+                    placeholder={t.phonePlaceholder}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-gray-50/50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-blue-600 rounded-xl py-2.5 pr-10 pl-4 text-xs font-medium text-gray-800 outline-none transition-all"
+                    style={{ textAlign: 'left', direction: 'ltr' }}
+                  />
+                  <div className={`absolute top-1/2 -translate-y-1/2 text-gray-400`} style={{ right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto' }}>
+                    <Phone size={16} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Email field */}
             <div className="space-y-1">
               <label className="block text-xs font-bold text-gray-700" htmlFor="email-input">
@@ -298,7 +409,7 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
                   className="w-full bg-gray-50/50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-blue-600 rounded-xl py-2.5 pr-10 pl-4 text-xs font-medium text-gray-800 outline-none transition-all"
                   style={{ textAlign: 'left', direction: 'ltr' }}
                 />
-                <div className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${lang === 'ar' ? 'right-3' : 'left-3'}`} style={{ right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto' }}>
+                <div className={`absolute top-1/2 -translate-y-1/2 text-gray-400`} style={{ right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto' }}>
                   <Mail size={16} />
                 </div>
               </div>
@@ -310,13 +421,15 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
                 <label className="block text-xs font-bold text-gray-700" htmlFor="password-input">
                   {t.password}
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setIsResetModalOpen(true)}
-                  className="text-[11px] text-blue-600 hover:text-blue-700 font-bold hover:underline cursor-pointer"
-                >
-                  {t.forgotPassword}
-                </button>
+                {!isSignUp && (
+                  <button
+                    type="button"
+                    onClick={() => setIsResetModalOpen(true)}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 font-bold hover:underline cursor-pointer"
+                  >
+                    {t.forgotPassword}
+                  </button>
+                )}
               </div>
               <div className="relative">
                 <input
@@ -343,29 +456,73 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
               </div>
             </div>
 
-            {/* Remember me & Options */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded text-blue-600 focus:ring-blue-500 border-gray-300"
-                />
-                <span className="text-xs text-gray-500 font-medium">{t.rememberMe}</span>
-              </label>
-            </div>
+            {/* Confirm Password field (Sign Up Only) */}
+            {isSignUp && (
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-gray-700" htmlFor="confirm-password-input">
+                  {t.confirmPassword}
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirm-password-input"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder={t.confirmPasswordPlaceholder}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-gray-50/50 border border-gray-200 hover:border-gray-300 focus:bg-white focus:border-blue-600 rounded-xl py-2.5 pr-10 pl-10 text-xs font-medium text-gray-800 outline-none transition-all"
+                    style={{ textAlign: 'left', direction: 'ltr' }}
+                  />
+                  <div className="absolute top-1/2 -translate-y-1/2 text-gray-400" style={{ right: lang === 'ar' ? '12px' : 'auto', left: lang === 'en' ? '12px' : 'auto' }}>
+                    <Lock size={16} />
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* Submit LogIn button */}
+            {/* Remember me & Options (Login Only) */}
+            {!isSignUp && (
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 border-gray-300"
+                  />
+                  <span className="text-xs text-gray-500 font-medium">{t.rememberMe}</span>
+                </label>
+              </div>
+            )}
+
+            {/* Submit button */}
             <button
               type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-md shadow-blue-200 hover:shadow-lg transition-all flex items-center justify-center gap-2 text-xs mt-6 cursor-pointer"
             >
-              <span>{t.loginBtn}</span>
+              <span>{isSignUp ? t.signUpBtn : t.loginBtn}</span>
               <ArrowRight size={14} className={lang === 'ar' ? 'rotate-180' : ''} />
             </button>
 
           </form>
+
+          {/* Toggle between Sign Up and Login */}
+          <div className="mt-6 text-center text-xs">
+            <span className="text-gray-500">
+              {isSignUp ? t.alreadyHaveAccount : t.dontHaveAccount}
+            </span>{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+                setSuccess('');
+              }}
+              className="text-blue-600 hover:text-blue-700 font-bold hover:underline ml-1 mr-1 cursor-pointer"
+            >
+              {isSignUp ? t.goToLogin : t.goToSignUp}
+            </button>
+          </div>
 
           {/* Quick Preset Demo Accounts Selector Section */}
           <div className="mt-8 pt-6 border-t border-gray-100" id="quick-fill-accounts">
