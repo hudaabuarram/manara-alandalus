@@ -7,12 +7,11 @@ import { UserRole } from '../types';
 
 interface LoginViewProps {
   onLogin: (role: UserRole, email: string) => void;
+  lang: 'ar' | 'en';
+  setLang: (lang: 'ar' | 'en') => void;
 }
 
-type Lang = 'ar' | 'en';
-
-export default function LoginView({ onLogin }: LoginViewProps) {
-  const [lang, setLang] = useState<Lang>('ar');
+export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

@@ -4,6 +4,7 @@ import {
   Phone, Mail, CheckCircle, User, BookOpen, School, DollarSign, X
 } from 'lucide-react';
 import { Teacher, GradeClass, Subject } from '../types';
+import { transData } from '../lib/translateHelper';
 
 interface TeachersViewProps {
   teachers: Teacher[];
@@ -13,6 +14,7 @@ interface TeachersViewProps {
   subjects: Subject[];
   setSubjects: React.Dispatch<React.SetStateAction<Subject[]>>;
   activeSubTab?: 'teachers' | 'classes' | 'subjects';
+  lang?: 'ar' | 'en';
 }
 
 export default function TeachersView({
@@ -22,7 +24,8 @@ export default function TeachersView({
   setClasses,
   subjects,
   setSubjects,
-  activeSubTab = 'teachers'
+  activeSubTab = 'teachers',
+  lang = 'ar'
 }: TeachersViewProps) {
   const [currentTab, setCurrentTab] = useState<'teachers' | 'classes' | 'subjects'>(activeSubTab);
   const [search, setSearch] = useState('');
@@ -31,6 +34,8 @@ export default function TeachersView({
   const [showTeacherModal, setShowTeacherModal] = useState(false);
   const [showClassModal, setShowClassModal] = useState(false);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
+
+  const trans = (ar: string, en: string) => lang === 'ar' ? ar : en;
 
   // New form states
   const [newTeacher, setNewTeacher] = useState<Partial<Teacher>>({
@@ -48,9 +53,9 @@ export default function TeachersView({
   });
 
   // Filters calculation
-  const filteredTeachers = teachers.filter(t => t.name.includes(search) || t.specialization.includes(search));
-  const filteredClasses = classes.filter(c => c.name.includes(search));
-  const filteredSubjects = subjects.filter(s => s.name.includes(search) || s.code.includes(search));
+  const filteredTeachers = teachers.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.specialization.toLowerCase().includes(search.toLowerCase()));
+  const filteredClasses = classes.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredSubjects = subjects.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.code.toLowerCase().includes(search.toLowerCase()));
 
   // Handler submissions
   const handleAddTeacher = (e: React.FormEvent) => {
@@ -106,18 +111,18 @@ export default function TeachersView({
   };
 
   const getSupervisorName = (id: string) => {
-    return teachers.find(t => t.id === id)?.name || 'غير معين';
+    return teachers.find(t => t.id === id)?.name || trans('غير معين', 'Not Assigned');
   };
 
   return (
-    <div className="space-y-6 text-right animate-in fade-in duration-200" id="teachers-classes-subjects-panel">
+    <div className={`space-y-6 animate-in fade-in duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`} id="teachers-classes-subjects-panel">
       
       {/* Tab Selectors */}
       <div className="flex border-b border-gray-200 bg-white p-1 rounded-xl shadow-xs" id="teachers-section-tabs">
         {[
-          { id: 'teachers', label: 'شؤون المعلمين والمعلمات', icon: User },
-          { id: 'classes', label: 'إدارة الصفوف والشعب الدراسية', icon: School },
-          { id: 'subjects', label: 'المواد والمناهج المقررة', icon: BookOpen },
+          { id: 'teachers', label: trans('شؤون المعلمين والمعلمات', 'Teachers & Staff'), icon: User },
+          { id: 'classes', label: trans('إدارة الصفوف والشعب الدراسية', 'Classes & Divisions'), icon: School },
+          { id: 'subjects', label: trans('المواد والمناهج المقر المقرر', 'Subjects & Curricula'), icon: BookOpen },
         ].map((tab) => {
           const Icon = tab.icon;
           const isAct = currentTab === tab.id;
@@ -128,14 +133,14 @@ export default function TeachersView({
                 setCurrentTab(tab.id as any);
                 setSearch('');
               }}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 isAct 
                   ? 'bg-blue-600 text-white shadow-sm' 
                   : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
               }`}
             >
               <Icon size={16} />
-              <span>{tab.label}</span>
+              <span className="whitespace-nowrap">{tab.label}</span>
             </button>
           );
         })}
@@ -144,320 +149,375 @@ export default function TeachersView({
       {/* Control panel & Action Triggers */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="relative w-full sm:w-80">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${lang === 'ar' ? 'right-3' : 'left-3'}`} size={16} />
           <input 
             type="text" 
             placeholder={
-              currentTab === 'teachers' ? "البحث باسم المعلم أو التخصص..." :
-              currentTab === 'classes' ? "البحث باسم الصف أو الشعبة..." : "البحث باسم المادة أو الكود الدراسي..."
+              currentTab === 'teachers' ? trans("ابحث بالاسم أو التخصص...", "Search by name or specialization...") :
+              currentTab === 'classes' ? trans("ابحث باسم الصف...", "Search by class name...") : trans("ابحث بالمادة أو الكود...", "Search by subject or code...")
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-gray-50 border border-gray-250 rounded-lg pr-10 pl-4 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-            id="teachers-panel-search-input"
+            className={`w-full bg-gray-50 border border-gray-250 rounded-lg py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white ${
+              lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'
+            }`}
           />
         </div>
 
         {currentTab === 'teachers' && (
           <button 
             onClick={() => setShowTeacherModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            id="add-teacher-trigger"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer shrink-0"
           >
             <Plus size={16} />
-            <span>تسجيل معلم جديد</span>
+            <span>{trans("إضافة معلم جديد", "Add New Teacher")}</span>
           </button>
         )}
 
         {currentTab === 'classes' && (
           <button 
             onClick={() => setShowClassModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            id="add-class-trigger"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer shrink-0"
           >
             <Plus size={16} />
-            <span>إضافة صف دراسي</span>
+            <span>{trans("إضافة صف جديد", "Add New Class")}</span>
           </button>
         )}
 
         {currentTab === 'subjects' && (
           <button 
             onClick={() => setShowSubjectModal(true)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
-            id="add-subject-trigger"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer shrink-0"
           >
             <Plus size={16} />
-            <span>إضافة مادة مقررة</span>
+            <span>{trans("إضافة مادة جديدة", "Add New Subject")}</span>
           </button>
         )}
       </div>
 
-      {/* Dynamic Content Table based on Active Sub-Tab */}
-      <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden">
-        
-        {/* TAB 1: TEACHERS DIRECTORY */}
-        {currentTab === 'teachers' && (
+      {/* Main Content Render */}
+      {currentTab === 'teachers' && (
+        <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right text-gray-500">
+            <table className="w-full text-sm text-gray-500">
               <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-3 font-bold">اسم المعلم</th>
-                  <th className="px-4 py-3 font-bold">التخصص والمؤهل</th>
-                  <th className="px-4 py-3 font-bold">الراتب الشهري</th>
-                  <th className="px-4 py-3 font-bold text-center">أداء المعلم</th>
-                  <th className="px-4 py-3 font-bold">رقم الجوال</th>
-                  <th className="px-4 py-3 text-center">الحالة</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("المعلم", "Teacher")}</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("التخصص والشهادة", "Specialization & Degree")}</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("معلومات التواصل", "Contact Info")}</th>
+                  <th className="px-4 py-3.5 font-bold text-center">{trans("الراتب", "Salary")}</th>
+                  <th className="px-4 py-3.5 font-bold text-center">{trans("الأداء والتقييم", "Performance Rating")}</th>
+                  <th className="px-4 py-3.5 font-bold text-center">{trans("العمليات", "Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {filteredTeachers.map((t) => (
-                  <tr key={t.id} className="hover:bg-gray-50/30 transition-colors">
+                {filteredTeachers.map((teach) => (
+                  <tr key={teach.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-4 py-3.5 font-bold text-gray-900">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-100">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center font-bold text-xs">
                           👨‍🏫
                         </div>
                         <div>
-                          <span>{t.name}</span>
-                          <span className="block text-[10px] text-gray-400 font-medium">{t.email}</span>
+                          <span>{transData(teach.name, lang)}</span>
+                          <span className="block text-[10px] text-gray-400 font-bold">{transData(teach.status, lang)}</span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs">
-                      <span className="text-gray-900 font-bold block">{t.specialization}</span>
-                      <span className="text-[10px] text-gray-400 font-bold">{t.qualification}</span>
+                    <td className="px-4 py-3.5">
+                      <span className="text-xs text-gray-800 font-semibold block">{transData(teach.specialization, lang)}</span>
+                      <span className="text-[10px] text-gray-400 font-medium block">{transData(teach.qualification, lang)}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-xs font-bold text-gray-800 font-mono">
-                      {t.salary.toLocaleString()} ر.س
+                    <td className="px-4 py-3.5 text-xs text-gray-600 font-medium">
+                      <div>{teach.phone}</div>
+                      <div className="text-[10px] text-gray-400 font-mono">{teach.email}</div>
+                    </td>
+                    <td className="px-4 py-3.5 text-center text-xs font-bold text-gray-900">
+                      {teach.salary.toLocaleString()} {trans("ريال", "SAR")}
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-bold">
-                        <Award size={13} />
-                        <span>{t.performanceScore} / 100</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-xs font-mono text-gray-600">{t.phone}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        t.status === 'نشط' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
-                      }`}>
-                        {t.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* TAB 2: CLASSES & SEATS */}
-        {currentTab === 'classes' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right text-gray-500">
-              <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3 font-bold">المرحلة والصف</th>
-                  <th className="px-4 py-3 font-bold">الشعب المتوفرة</th>
-                  <th className="px-4 py-3 font-bold text-center">الطاقة الاستيعابية للمقاعد</th>
-                  <th className="px-4 py-3 font-bold">المشرف التربوي المعتمد</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {filteredClasses.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50/30 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-gray-900 flex items-center gap-3">
-                      <span className="text-lg">🏫</span>
-                      <div>
-                        <span>{c.name}</span>
-                        <span className="block text-[10px] text-gray-400 font-medium">مرحلة {c.stage}</span>
+                      <div className="inline-flex flex-col items-center">
+                        <span className="text-xs font-black text-green-600">{teach.performanceScore}%</span>
+                        <span className="text-[9px] text-gray-400 font-medium">{trans("الحضور", "Attendance")}: {teach.attendanceRate}%</span>
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {c.divisions.map((div, i) => (
-                          <span key={i} className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">شعبة {div}</span>
-                        ))}
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors cursor-pointer">
+                          <Edit2 size={14} />
+                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 transition-colors cursor-pointer">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                    </td>
-                    <td className="px-4 py-3.5 text-center text-xs font-bold text-gray-800 font-mono">
-                      {c.capacity} مقعد للغرفة
-                    </td>
-                    <td className="px-4 py-3.5 text-xs text-blue-700 font-bold">
-                      {getSupervisorName(c.supervisorId)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* TAB 3: SUBJECTS DIRECTORY */}
-        {currentTab === 'subjects' && (
+      {currentTab === 'classes' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in">
+          {filteredClasses.map((cl) => (
+            <div key={cl.id} className="bg-white border border-gray-150 rounded-xl p-4 shadow-xs relative hover:border-blue-500/50 transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-2 py-0.5 rounded">{transData(cl.stage, lang)}</span>
+                  <span className="text-xs text-gray-400 font-bold">{trans("القدرة الاستيعابية", "Capacity")}: {cl.capacity}</span>
+                </div>
+                <h4 className="font-bold text-sm text-gray-900 mb-1">{transData(cl.name, lang)}</h4>
+                <p className="text-xs text-gray-500 mb-4 flex items-center gap-1">
+                  <span>{trans("رائد الفصل / المشرف:", "Class Supervisor:")}</span>
+                  <span className="font-bold text-blue-600">{transData(getSupervisorName(cl.supervisorId), lang)}</span>
+                </p>
+              </div>
+              
+              <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 font-bold">{trans("الشعب المرتبطة:", "Divisions:")}</span>
+                  {cl.divisions.map((div, i) => (
+                    <span key={i} className="w-5 h-5 rounded bg-gray-50 border border-gray-200 flex items-center justify-center text-xs text-gray-700 font-black">
+                      {transData(div, lang)}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button className="p-1 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors cursor-pointer">
+                    <Edit2 size={13} />
+                  </button>
+                  <button className="p-1 rounded-lg hover:bg-red-50 text-red-600 transition-colors cursor-pointer">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {currentTab === 'subjects' && (
+        <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden animate-in fade-in">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-right text-gray-500">
+            <table className="w-full text-sm text-gray-500">
               <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-100">
                 <tr>
-                  <th className="px-4 py-3 font-bold">رمز المادة المقررة</th>
-                  <th className="px-4 py-3 font-bold">اسم المادة المنهجية</th>
-                  <th className="px-4 py-3 font-bold">الصف المستهدف</th>
-                  <th className="px-4 py-3 font-bold text-center">عدد الحصص أسبوعياً</th>
-                  <th className="px-4 py-3 font-bold">المعلم المسؤول</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("رمز المادة", "Subject Code")}</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("اسم المادة المقررة", "Subject Title")}</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("الصف المستهدف", "Target Grade")}</th>
+                  <th className="px-4 py-3.5 font-bold text-center">{trans("الحصص الإسبوعية", "Periods Per Week")}</th>
+                  <th className={`px-4 py-3.5 font-bold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("المعلم المسؤول", "Teacher In Charge")}</th>
+                  <th className="px-4 py-3.5 font-bold text-center">{trans("العمليات", "Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {filteredSubjects.map((s) => (
-                  <tr key={s.id} className="hover:bg-gray-50/30 transition-colors">
-                    <td className="px-4 py-3.5 font-mono text-xs font-bold text-blue-600">{s.code}</td>
-                    <td className="px-4 py-3.5 font-bold text-gray-900">{s.name}</td>
-                    <td className="px-4 py-3.5 text-xs text-gray-700">{s.grade}</td>
-                    <td className="px-4 py-3.5 text-center text-xs font-bold text-gray-800 font-mono">
-                      {s.periodsPerWeek} حصص فترية
-                    </td>
-                    <td className="px-4 py-3.5 text-xs text-gray-600 font-medium">
-                      {getSupervisorName(s.teacherId)}
+                {filteredSubjects.map((sub) => (
+                  <tr key={sub.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-4 py-3.5 font-mono text-xs font-bold text-blue-600">{sub.code}</td>
+                    <td className="px-4 py-3.5 font-bold text-gray-900">{transData(sub.name, lang)}</td>
+                    <td className="px-4 py-3.5 text-xs text-gray-700 font-medium">{transData(sub.grade, lang)}</td>
+                    <td className="px-4 py-3.5 text-center text-xs font-bold text-gray-900">{sub.periodsPerWeek} {trans("حصص", "periods")}</td>
+                    <td className="px-4 py-3.5 text-xs text-gray-700 font-medium">{transData(getSupervisorName(sub.teacherId), lang)}</td>
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center justify-center gap-2">
+                        <button className="p-1.5 rounded-lg hover:bg-amber-50 text-amber-600 transition-colors cursor-pointer">
+                          <Edit2 size={14} />
+                        </button>
+                        <button className="p-1.5 rounded-lg hover:bg-red-50 text-red-600 transition-colors cursor-pointer">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
-
-      {/* MODAL 1: ADD TEACHER */}
+      {/* Add Teacher Modal */}
       {showTeacherModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-xl overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden flex flex-col">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">تسجيل معلم جديد بالكادر</h3>
-              <button onClick={() => setShowTeacherModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <h3 className="font-bold text-gray-900 text-sm">{trans("إضافة معلم جديد", "Add New Teacher")}</h3>
+              <button onClick={() => setShowTeacherModal(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleAddTeacher} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">الاسم المعتمد *</label>
-                  <input type="text" required value={newTeacher.name} onChange={(e) => setNewTeacher({...newTeacher, name: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white" placeholder="أ. فهد بن عبدالله" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">التخصص العلمي *</label>
-                  <input type="text" required value={newTeacher.specialization} onChange={(e) => setNewTeacher({...newTeacher, specialization: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" placeholder="مثال: علم الأحياء" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">المؤهل الدراسي</label>
-                  <input type="text" value={newTeacher.qualification} onChange={(e) => setNewTeacher({...newTeacher, qualification: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" placeholder="بكالوريوس التربية" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">الراتب الأساسي</label>
-                  <input type="number" value={newTeacher.salary} onChange={(e) => setNewTeacher({...newTeacher, salary: Number(e.target.value)})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">رقم الجوال</label>
-                  <input type="text" value={newTeacher.phone} onChange={(e) => setNewTeacher({...newTeacher, phone: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">البريد الإلكتروني</label>
-                  <input type="email" value={newTeacher.email} onChange={(e) => setNewTeacher({...newTeacher, email: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("الاسم الكامل للمعلم *", "Full Teacher Name *")}</label>
+                <input 
+                  type="text" required
+                  value={newTeacher.name}
+                  onChange={(e) => setNewTeacher({...newTeacher, name: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
               </div>
-              <div className="flex justify-end gap-3 pt-3">
-                <button type="button" onClick={() => setShowTeacherModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold">حفظ وحساب المعلم</button>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("التخصص الأكاديمي *", "Specialization *")}</label>
+                <input 
+                  type="text" required
+                  value={newTeacher.specialization}
+                  onChange={(e) => setNewTeacher({...newTeacher, specialization: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("المؤهل والشهادة", "Qualification")}</label>
+                <input 
+                  type="text"
+                  value={newTeacher.qualification}
+                  onChange={(e) => setNewTeacher({...newTeacher, qualification: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("الراتب الشهري", "Monthly Salary")}</label>
+                <input 
+                  type="number"
+                  value={newTeacher.salary}
+                  onChange={(e) => setNewTeacher({...newTeacher, salary: Number(e.target.value)})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
+              </div>
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowTeacherModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("حفظ وتسجيل المعلم", "Save Teacher")}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: ADD CLASS */}
+      {/* Add Class Modal */}
       {showClassModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden flex flex-col">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">إضافة صف دراسي جديد</h3>
-              <button onClick={() => setShowClassModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <h3 className="font-bold text-gray-900 text-sm">{trans("إضافة صف جديد", "Add New Class")}</h3>
+              <button onClick={() => setShowClassModal(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleAddClass} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">اسم الصف الدراسي *</label>
-                <input type="text" required value={newClass.name} onChange={(e) => setNewClass({...newClass, name: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white" placeholder="مثال: الصف الثالث الثانوي" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">المرحلة</label>
-                  <select value={newClass.stage} onChange={(e) => setNewClass({...newClass, stage: e.target.value as any})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs">
-                    <option value="ثانوي">ثانوي</option>
-                    <option value="متوسط">متوسط</option>
-                    <option value="ابتدائي">ابتدائي</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">طاقة الاستيعاب القصوى</label>
-                  <input type="number" value={newClass.capacity} onChange={(e) => setNewClass({...newClass, capacity: Number(e.target.value)})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" />
-                </div>
+                <label className="text-xs font-bold text-gray-700 block">{trans("اسم الصف *", "Class Name *")}</label>
+                <input 
+                  type="text" required
+                  placeholder="مثال: الصف الأول الثانوي"
+                  value={newClass.name}
+                  onChange={(e) => setNewClass({...newClass, name: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">رائد الفصل (معلم مشرف)</label>
-                <select value={newClass.supervisorId} onChange={(e) => setNewClass({...newClass, supervisorId: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs">
+                <label className="text-xs font-bold text-gray-700 block">{trans("المرحلة الدراسية", "Stage")}</label>
+                <select 
+                  value={newClass.stage}
+                  onChange={(e) => setNewClass({...newClass, stage: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                >
+                  <option value="ثانوي">{trans("ثانوي", "Secondary")}</option>
+                  <option value="متوسط">{trans("متوسط", "Intermediate")}</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("رائد الفصل المسؤول", "Class Supervisor")}</label>
+                <select 
+                  value={newClass.supervisorId}
+                  onChange={(e) => setNewClass({...newClass, supervisorId: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                >
                   {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{transData(t.name, lang)}</option>
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-3">
-                <button type="button" onClick={() => setShowClassModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold">إضافة وحفظ</button>
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowClassModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إنشاء وحفظ الصف", "Create Class")}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 3: ADD SUBJECT */}
+      {/* Add Subject Modal */}
       {showSubjectModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden flex flex-col">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">تسجيل مادة منهجية جديدة</h3>
-              <button onClick={() => setShowSubjectModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <h3 className="font-bold text-gray-900 text-sm">{trans("إضافة مادة جديدة", "Add New Subject")}</h3>
+              <button onClick={() => setShowSubjectModal(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleAddSubject} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 col-span-2">
-                  <label className="text-xs font-bold text-gray-700 block">اسم المادة المنهجية *</label>
-                  <input type="text" required value={newSubject.name} onChange={(e) => setNewSubject({...newSubject, name: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" placeholder="مثال: كيمياء ٢" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">الكود الرمزي للمادة *</label>
-                  <input type="text" required value={newSubject.code} onChange={(e) => setNewSubject({...newSubject, code: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs font-mono" placeholder="CHEM-102" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-gray-700 block">الحصص أسبوعياً</label>
-                  <input type="number" value={newSubject.periodsPerWeek} onChange={(e) => setNewSubject({...newSubject, periodsPerWeek: Number(e.target.value)})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs" />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("اسم المادة الأكاديمية *", "Subject Name *")}</label>
+                <input 
+                  type="text" required
+                  placeholder="مثال: الرياضيات ١"
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({...newSubject, name: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">الصف الدراسي المستهدف</label>
-                <select value={newSubject.grade} onChange={(e) => setNewSubject({...newSubject, grade: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs">
-                  <option value="الصف الأول الثانوي">الصف الأول الثانوي</option>
-                  <option value="الصف الثاني الثانوي">الصف الثاني الثانوي</option>
-                  <option value="الصف الثالث المتوسط">الصف الثالث المتوسط</option>
-                  <option value="الصف الأول المتوسط">الصف الأول المتوسط</option>
+                <label className="text-xs font-bold text-gray-700 block">{trans("رمز المادة *", "Subject Code *")}</label>
+                <input 
+                  type="text" required
+                  placeholder="e.g. MATH-101"
+                  value={newSubject.code}
+                  onChange={(e) => setNewSubject({...newSubject, code: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("الصف الدراسي المستهدف", "Target Grade")}</label>
+                <select 
+                  value={newSubject.grade}
+                  onChange={(e) => setNewSubject({...newSubject, grade: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                >
+                  <option value="الصف الأول الثانوي">{trans("الصف الأول الثانوي", "1st Grade - Secondary")}</option>
+                  <option value="الصف الثاني الثانوي">{trans("الصف الثاني الثانوي", "2nd Grade - Secondary")}</option>
+                  <option value="الصف الثالث المتوسط">{trans("الصف الثالث المتوسط", "3rd Grade - Intermediate")}</option>
+                  <option value="الصف الأول المتوسط">{trans("الصف الأول المتوسط", "1st Grade - Intermediate")}</option>
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">المعلم المكلف بالتدريس</label>
-                <select value={newSubject.teacherId} onChange={(e) => setNewSubject({...newSubject, teacherId: e.target.value})} className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs">
+                <label className="text-xs font-bold text-gray-700 block">{trans("المعلم الموكل إليه المادة", "Assigned Teacher")}</label>
+                <select 
+                  value={newSubject.teacherId}
+                  onChange={(e) => setNewSubject({...newSubject, teacherId: e.target.value})}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs"
+                >
                   {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{transData(t.name, lang)}</option>
                   ))}
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-3">
-                <button type="button" onClick={() => setShowSubjectModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold">تسجيل المادة</button>
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowSubjectModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("حفظ وتسجيل المادة", "Save Subject")}
+                </button>
               </div>
             </form>
           </div>

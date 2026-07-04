@@ -12,6 +12,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
+  lang: 'ar' | 'en';
 }
 
 export interface MenuItem {
@@ -45,14 +46,48 @@ export default function Sidebar({
   activeTab, 
   setActiveTab, 
   collapsed, 
-  setCollapsed 
+  setCollapsed,
+  lang
 }: SidebarProps) {
   
   // Filter menu items by user role
   const allowedMenuItems = menuItems.filter(item => item.roles.includes(currentRole));
 
-  // Get Role Name in Arabic
-  const getRoleNameArabic = (role: UserRole) => {
+  // Get Translated MenuItem Label
+  const getLabel = (item: MenuItem) => {
+    const labels: Record<string, { ar: string; en: string }> = {
+      dashboard: { ar: 'لوحة التحكم', en: 'Dashboard' },
+      students: { ar: 'شؤون الطلاب', en: 'Student Affairs' },
+      teachers: { ar: 'شؤون المعلمين', en: 'Teacher Affairs' },
+      classes: { ar: 'الصفوف والشعب', en: 'Classes & Divisions' },
+      subjects: { ar: 'المواد الدراسية', en: 'Subjects' },
+      schedule: { ar: 'الجدول الدراسي', en: 'Schedule' },
+      attendance: { ar: 'رصد الحضور والغياب', en: 'Attendance' },
+      assignments: { ar: 'الواجبات المدرسية', en: 'Assignments' },
+      exams: { ar: 'الامتحانات والاختبارات', en: 'Exams' },
+      grades: { ar: 'كشف الدرجات والنتائج', en: 'Grades' },
+      finance: { ar: 'الرسوم والفواتير', en: 'Fees & Invoicing' },
+      library: { ar: 'المكتبة المدرسية', en: 'Library' },
+      transport: { ar: 'النقل المدرسي', en: 'Transport' },
+      messages: { ar: 'الرسائل والإشعارات', en: 'Messages' },
+      reports: { ar: 'التقارير والإحصائيات', en: 'Reports' },
+      settings: { ar: 'إعدادات النظام', en: 'Settings' }
+    };
+    return labels[item.id]?.[lang] || item.label;
+  };
+
+  // Get Role Name in Selected Language
+  const getRoleName = (role: UserRole) => {
+    if (lang === 'en') {
+      switch(role) {
+        case 'admin': return 'General Manager';
+        case 'supervisor': return 'Academic Supervisor';
+        case 'teacher': return 'Class Teacher';
+        case 'student': return 'Student';
+        case 'parent': return 'Parent';
+        default: return '';
+      }
+    }
     switch(role) {
       case 'admin': return 'مدير النظام';
       case 'supervisor': return 'المشرف العام';
@@ -76,7 +111,9 @@ export default function Sidebar({
 
   return (
     <aside 
-      className={`bg-white border-l border-gray-200 min-h-screen transition-all duration-300 flex flex-col z-20 ${
+      className={`bg-white min-h-screen transition-all duration-300 flex flex-col z-20 ${
+        lang === 'ar' ? 'border-l border-gray-200' : 'border-r border-gray-200'
+      } ${
         collapsed ? 'w-20' : 'w-64'
       }`}
       id="main-sidebar"
@@ -87,8 +124,12 @@ export default function Sidebar({
           <div className="flex items-center gap-3">
             <span className="text-3xl" id="sidebar-logo">🏫</span>
             <div>
-              <h1 className="font-bold text-gray-900 text-sm leading-tight">منارة الأندلس</h1>
-              <p className="text-xs text-gray-500 font-medium">النظام التعليمي المتكامل</p>
+              <h1 className="font-bold text-gray-900 text-sm leading-tight">
+                {lang === 'ar' ? 'منارة الأندلس' : 'Manarat Al-Andalus'}
+              </h1>
+              <p className="text-xs text-gray-500 font-medium">
+                {lang === 'ar' ? 'النظام التعليمي المتكامل' : 'Unified School System'}
+              </p>
             </div>
           </div>
         )}
@@ -99,7 +140,7 @@ export default function Sidebar({
         <button 
           onClick={() => setCollapsed(!collapsed)}
           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors hidden md:block"
-          title={collapsed ? "توسيع القائمة" : "طي القائمة"}
+          title={collapsed ? (lang === 'ar' ? "توسيع القائمة" : "Expand menu") : (lang === 'ar' ? "طي القائمة" : "Collapse menu")}
           id="toggle-sidebar-btn"
         >
           {collapsed ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
@@ -111,27 +152,34 @@ export default function Sidebar({
         {allowedMenuItems.map((item) => {
           const IconComponent = item.icon;
           const isActive = activeTab === item.id;
+          const labelText = getLabel(item);
           
           return (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 p-2.5 rounded-l-md rounded-r-none text-right transition-all duration-150 relative border-r-3 ${
+              className={`w-full flex items-center gap-3 p-2.5 transition-all duration-150 relative ${
+                lang === 'ar' 
+                  ? 'text-right border-r-3 rounded-l-md rounded-r-none' 
+                  : 'text-left border-l-3 rounded-r-md rounded-l-none'
+              } ${
                 isActive 
                   ? 'bg-blue-50/90 text-blue-600 border-blue-600 font-semibold' 
                   : 'text-gray-600 border-transparent hover:bg-gray-50 hover:text-blue-600'
               }`}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? labelText : undefined}
               id={`sidebar-item-${item.id}`}
             >
               <IconComponent className={`shrink-0 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-blue-600'}`} size={20} />
               
               {!collapsed && (
-                <span className="text-sm truncate">{item.label}</span>
+                <span className="text-sm truncate">{labelText}</span>
               )}
 
               {isActive && !collapsed && (
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-600" />
+                <div className={`absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-blue-600 ${
+                  lang === 'ar' ? 'left-2' : 'right-2'
+                }`} />
               )}
             </button>
           );
@@ -144,14 +192,16 @@ export default function Sidebar({
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2">
               <Shield size={16} className="text-gray-500" />
-              <span className="text-xs text-gray-500 font-medium">المرونة الحالية</span>
+              <span className="text-xs text-gray-500 font-medium">
+                {lang === 'ar' ? 'المرونة الحالية' : 'Current Access'}
+              </span>
             </div>
             <div className={`px-2.5 py-1.5 rounded-lg text-center text-xs font-bold ${getRoleBadgeColor(currentRole)}`} id="active-role-badge">
-              {getRoleNameArabic(currentRole)}
+              {getRoleName(currentRole)}
             </div>
           </div>
         ) : (
-          <div className="flex justify-center" title={getRoleNameArabic(currentRole)}>
+          <div className="flex justify-center" title={getRoleName(currentRole)}>
             <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs border border-blue-200">
               {currentRole[0].toUpperCase()}
             </div>

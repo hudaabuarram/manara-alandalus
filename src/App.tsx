@@ -29,6 +29,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [lang, setLang] = useState<'ar' | 'en'>('ar');
 
   // Core system-wide states to support real reactive updates across tabs
   const [settings, setSettings] = useState(initialSettings);
@@ -93,6 +94,7 @@ export default function App() {
             exams={exams}
             invoices={invoices}
             setActiveTab={handleSetActiveTab}
+            lang={lang}
           />
         );
       
@@ -106,6 +108,7 @@ export default function App() {
             grades={grades}
             invoices={invoices}
             attendance={attendance}
+            lang={lang}
           />
         );
 
@@ -119,6 +122,7 @@ export default function App() {
             subjects={subjects}
             setSubjects={setSubjects}
             activeSubTab="teachers"
+            lang={lang}
           />
         );
 
@@ -132,6 +136,7 @@ export default function App() {
             subjects={subjects}
             setSubjects={setSubjects}
             activeSubTab="classes"
+            lang={lang}
           />
         );
 
@@ -145,6 +150,7 @@ export default function App() {
             subjects={subjects}
             setSubjects={setSubjects}
             activeSubTab="subjects"
+            lang={lang}
           />
         );
 
@@ -156,6 +162,7 @@ export default function App() {
             subjects={subjects}
             teachers={teachers}
             classes={classes}
+            lang={lang}
           />
         );
 
@@ -167,6 +174,7 @@ export default function App() {
             students={students}
             teachers={teachers}
             classes={classes}
+            lang={lang}
           />
         );
 
@@ -185,6 +193,7 @@ export default function App() {
             subjects={subjects}
             classes={classes}
             activeSubTab="assignments"
+            lang={lang}
           />
         );
 
@@ -203,6 +212,7 @@ export default function App() {
             subjects={subjects}
             classes={classes}
             activeSubTab="exams"
+            lang={lang}
           />
         );
 
@@ -221,6 +231,7 @@ export default function App() {
             subjects={subjects}
             classes={classes}
             activeSubTab="grades"
+            lang={lang}
           />
         );
 
@@ -231,6 +242,7 @@ export default function App() {
             setParents={setParents}
             students={students}
             invoices={invoices}
+            lang={lang}
           />
         );
 
@@ -240,6 +252,7 @@ export default function App() {
             invoices={invoices}
             setInvoices={setInvoices}
             students={students}
+            lang={lang}
           />
         );
 
@@ -254,6 +267,7 @@ export default function App() {
             setRoutes={setRoutes}
             students={students}
             activeSubTab="library"
+            lang={lang}
           />
         );
 
@@ -268,6 +282,7 @@ export default function App() {
             setRoutes={setRoutes}
             students={students}
             activeSubTab="transport"
+            lang={lang}
           />
         );
 
@@ -277,6 +292,7 @@ export default function App() {
             messages={messages}
             setMessages={setMessages}
             currentRole={currentRole}
+            lang={lang}
           />
         );
 
@@ -287,6 +303,7 @@ export default function App() {
             teachers={teachers}
             invoices={invoices}
             grades={grades}
+            lang={lang}
           />
         );
 
@@ -295,6 +312,7 @@ export default function App() {
           <SettingsView 
             settings={settings}
             setSettings={setSettings}
+            lang={lang}
           />
         );
 
@@ -310,6 +328,7 @@ export default function App() {
             exams={exams}
             invoices={invoices}
             setActiveTab={handleSetActiveTab}
+            lang={lang}
           />
         );
     }
@@ -323,12 +342,14 @@ export default function App() {
           setSettings(prev => ({ ...prev, email }));
           setIsAuthenticated(true);
         }} 
+        lang={lang}
+        setLang={setLang}
       />
     );
   }
 
   return (
-    <div className="flex bg-gray-50 min-h-screen text-right" style={{ direction: 'rtl' }} id="app-workspace-root">
+    <div className={`flex bg-gray-50 min-h-screen ${lang === 'ar' ? 'text-right font-sans' : 'text-left font-sans'}`} style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }} id="app-workspace-root">
       
       {/* Sidebar Navigator */}
       <Sidebar 
@@ -337,6 +358,7 @@ export default function App() {
         setActiveTab={handleSetActiveTab}
         collapsed={sidebarCollapsed}
         setCollapsed={setSidebarCollapsed}
+        lang={lang}
       />
 
       {/* Main Right Section layout */}
@@ -350,6 +372,7 @@ export default function App() {
           activeNotificationsCount={activeNotificationsCount}
           unreadMessagesCount={unreadMessagesCount}
           onLogout={() => setIsAuthenticated(false)}
+          lang={lang}
         />
 
         {/* View container */}

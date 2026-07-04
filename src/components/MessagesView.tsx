@@ -1,21 +1,26 @@
 import React, { useState } from 'react';
 import { Mail, Send, Inbox, Plus, User, MessageSquare, AlertCircle, Trash, X } from 'lucide-react';
 import { Message, UserRole } from '../types';
+import { transData } from '../lib/translateHelper';
 
 interface MessagesViewProps {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   currentRole: UserRole;
+  lang?: 'ar' | 'en';
 }
 
 export default function MessagesView({
   messages,
   setMessages,
-  currentRole
+  currentRole,
+  lang = 'ar'
 }: MessagesViewProps) {
   const [activeTab, setActiveTab] = useState<'inbox' | 'sent'>('inbox');
   const [selectedMsg, setSelectedMsg] = useState<Message | null>(null);
   const [showCompose, setShowCompose] = useState(false);
+
+  const trans = (ar: string, en: string) => lang === 'ar' ? ar : en;
 
   // Compose form values
   const [newMessage, setNewMessage] = useState({
@@ -48,15 +53,15 @@ export default function MessagesView({
     if (!newMessage.subject || !newMessage.content) return;
 
     // Resolve name
-    let recName = 'جميع أولياء الأمور';
-    if (newMessage.recipientId === 'all-teachers') recName = 'جميع المعلمين والمعلمات';
-    else if (newMessage.recipientId === 'p1') recName = 'عبدالرحمن بن محمد السديري (ولي أمر)';
-    else if (newMessage.recipientId === 't1') recName = 'أ. ياسر بن سليمان الحربي (رياضيات)';
+    let recName = trans('جميع أولياء الأمور', 'All Parents');
+    if (newMessage.recipientId === 'all-teachers') recName = trans('جميع المعلمين والمعلمات', 'All Teachers');
+    else if (newMessage.recipientId === 'p1') recName = trans('عبدالرحمن بن محمد السديري (ولي أمر)', 'Abdulrahman Al-Sudairi (Parent)');
+    else if (newMessage.recipientId === 't1') recName = trans('أ. ياسر بن سليمان الحربي (رياضيات)', 'Mr. Yasser Al-Harbi (Math)');
 
     const msg: Message = {
       id: `m${Date.now()}`,
       senderId: currentRole,
-      senderName: currentRole === 'admin' ? 'المدير العام' : currentRole === 'teacher' ? 'أ. هدى سليمان' : 'المشرف الأكاديمي',
+      senderName: currentRole === 'admin' ? trans('المدير العام', 'General Director') : currentRole === 'teacher' ? trans('أ. هدى سليمان', 'Mrs. Hoda Soliman') : trans('المشرف الأكاديمي', 'Academic Supervisor'),
       senderRole: currentRole,
       receiverId: newMessage.recipientId,
       receiverName: recName,
@@ -72,12 +77,12 @@ export default function MessagesView({
     // reset form
     setNewMessage({
       recipientId: 'all-parents',
-      recipientName: 'جميع أولياء الأمور',
+      recipientName: trans('جميع أولياء الأمور', 'All Parents'),
       subject: '',
       content: ''
     });
 
-    alert("تم إرسال ونشر الرسالة بنجاح!");
+    alert(trans("تم إرسال ونشر الرسالة بنجاح!", "Message sent and published successfully!"));
   };
 
   const handleSelectMessage = (msg: Message) => {
@@ -89,176 +94,191 @@ export default function MessagesView({
   };
 
   const handleDeleteMessage = (id: string) => {
-    if (confirm("هل تريد حذف هذه الرسالة من البريد؟")) {
+    if (confirm(trans("هل تريد حذف هذه الرسالة من البريد؟", "Do you want to delete this message?"))) {
       setMessages(messages.filter(msg => msg.id !== id));
       if (selectedMsg?.id === id) setSelectedMsg(null);
     }
   };
 
   return (
-    <div className="space-y-6 text-right animate-in fade-in duration-200" id="messages-view-container">
+    <div className={`space-y-6 animate-in fade-in duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`} id="messages-view-container">
       
-      {/* View Title */}
-      <div className="flex justify-between items-center">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">الرسائل البريدية والإشعارات الفورية</h2>
-          <p className="text-xs text-gray-500">التراسل الداخلي بين الهيئة التعليمية، المشرفين، وأولياء الأمور للطلاب</p>
+          <h2 className="text-lg font-bold text-gray-900">{trans("صندوق الوارد والاتصالات والتعاميم", "Mailbox, Notices & General Circulars")}</h2>
+          <p className="text-xs text-gray-500">{trans("متابعة الإشعارات والرسائل الرسمية وتواصل المعلمين مع أولياء الأمور والمدير العام", "Track administrative requests, parent communications, official board notices, and letters")}</p>
         </div>
+
         <button 
           onClick={() => setShowCompose(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer shrink-0 self-start sm:self-auto"
         >
-          <Plus size={16} />
-          <span>إرسال رسالة جديدة</span>
+          <Plus size={15} />
+          <span>{trans("إنشاء رسالة جديدة", "Write New Message")}</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Inbox & Sent Toggle */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="messages-layout-grid">
         
-        {/* Navigation list (left columns) */}
-        <div className="lg:col-span-1 bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden flex flex-col h-[520px]">
-          <div className="flex border-b border-gray-100 p-2 bg-gray-50/50">
-            <button 
+        {/* Navigation Sidebar */}
+        <div className="space-y-3">
+          <div className="bg-white border border-gray-150 rounded-xl p-1 shadow-xs flex" id="inbox-sent-toggles">
+            <button
               onClick={() => { setActiveTab('inbox'); setSelectedMsg(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeTab === 'inbox' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                activeTab === 'inbox' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              صندوق الوارد
+              <Inbox size={15} />
+              <span>{trans("صندوق الوارد", "Inbox")}</span>
             </button>
-            <button 
+            <button
               onClick={() => { setActiveTab('sent'); setSelectedMsg(null); }}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg ${activeTab === 'sent' ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-500'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                activeTab === 'sent' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:bg-gray-50'
+              }`}
             >
-              البريد المرسل
+              <Send size={14} />
+              <span>{trans("الرسائل المرسلة", "Sent Mail")}</span>
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          {/* Mail list */}
+          <div className="bg-white border border-gray-150 rounded-xl shadow-xs overflow-hidden divide-y divide-gray-100 max-h-[480px] overflow-y-auto">
             {activeMessages.length > 0 ? (
-              activeMessages.map((msg) => (
-                <div 
-                  key={msg.id}
-                  onClick={() => handleSelectMessage(msg)}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors relative ${
-                    selectedMsg?.id === msg.id ? 'bg-blue-50/40' : ''
-                  }`}
-                >
-                  {/* Unread dot */}
-                  {!msg.isRead && activeTab === 'inbox' && (
-                    <div className="absolute top-4 right-3.5 w-1.5 h-1.5 rounded-full bg-blue-600" />
-                  )}
-                  <div className="pr-4">
-                    <div className="flex justify-between text-[10px] text-gray-400 font-bold mb-1">
-                      <span>{activeTab === 'inbox' ? `من: ${msg.senderName}` : `إلى: ${msg.receiverName}`}</span>
+              activeMessages.map((msg) => {
+                const isSelected = selectedMsg?.id === msg.id;
+                return (
+                  <div 
+                    key={msg.id}
+                    onClick={() => handleSelectMessage(msg)}
+                    className={`p-4 transition-colors cursor-pointer ${
+                      isSelected ? 'bg-blue-50/70 border-r-4 border-blue-600' :
+                      !msg.isRead && activeTab === 'inbox' ? 'bg-gray-50/50 font-bold text-gray-950' : 'hover:bg-gray-50/30'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-2 text-[10px] text-gray-400 font-bold mb-1">
+                      <span>{activeTab === 'inbox' ? transData(msg.senderName, lang) : transData(msg.receiverName, lang)}</span>
                       <span>{msg.timestamp}</span>
                     </div>
-                    <h4 className="font-bold text-xs text-gray-900 truncate leading-snug">{msg.subject}</h4>
-                    <p className="text-[11px] text-gray-500 truncate mt-1 leading-normal">{msg.content}</p>
+                    <h4 className="text-xs text-gray-900 font-bold truncate leading-snug">{transData(msg.subject, lang)}</h4>
+                    <p className="text-[10px] text-gray-500 truncate mt-1.5 font-medium">{transData(msg.content, lang)}</p>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
-              <div className="py-20 text-center text-gray-400 font-medium text-xs">صندوق الرسائل فارغ حالياً.</div>
+              <div className="p-8 text-center text-gray-400 italic text-xs">
+                {trans("لا يوجد أي رسائل هنا حتى الآن.", "No messages found here.")}
+              </div>
             )}
           </div>
         </div>
 
-        {/* Selected Message details (right columns) */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-150 shadow-xs p-6 h-[520px] flex flex-col justify-between">
+        {/* Message Reader Panel */}
+        <div className="md:col-span-2">
           {selectedMsg ? (
-            <div className="space-y-6 flex-1 flex flex-col justify-between">
-              <div>
-                <div className="flex justify-between items-start border-b border-gray-100 pb-4">
+            <div className="bg-white border border-gray-150 rounded-xl p-6 shadow-xs min-h-[400px] flex flex-col justify-between animate-in fade-in duration-150">
+              <div className="space-y-4">
+                <div className="flex items-start justify-between border-b border-gray-100 pb-4">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 leading-snug">{selectedMsg.subject}</h3>
-                    <div className="text-[10px] text-gray-400 font-bold mt-2 space-y-0.5">
-                      <p>المرسل: {selectedMsg.senderName} ({selectedMsg.senderRole})</p>
-                      <p>المستقبل: {selectedMsg.receiverName}</p>
-                    </div>
+                    <h3 className="font-bold text-base text-gray-950 leading-snug">{transData(selectedMsg.subject, lang)}</h3>
+                    <p className="text-xs text-blue-600 font-bold mt-1.5">
+                      <span>{activeTab === 'inbox' ? trans("المرسل:", "Sender:") : trans("المستلم:", "Recipient:")} </span>
+                      <span className="text-gray-900 font-black">{activeTab === 'inbox' ? transData(selectedMsg.senderName, lang) : transData(selectedMsg.receiverName, lang)}</span>
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-gray-400 font-mono font-bold">{selectedMsg.timestamp}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400 font-medium">{selectedMsg.timestamp}</span>
                     <button 
                       onClick={() => handleDeleteMessage(selectedMsg.id)}
-                      className="p-1 text-rose-500 hover:bg-rose-50 rounded"
-                      title="حذف الرسالة"
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer"
+                      title={trans("حذف الرسالة", "Delete mail")}
                     >
-                      <Trash size={15} />
+                      <Trash size={14} />
                     </button>
                   </div>
                 </div>
 
-                <div className="py-4 text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">
-                  {selectedMsg.content}
-                </div>
+                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-line bg-gray-50/50 p-4 rounded-xl border border-gray-100">
+                  {transData(selectedMsg.content, lang)}
+                </p>
               </div>
 
-              <div className="border-t border-gray-100 pt-4 bg-gray-50 p-4 rounded-xl flex items-center gap-2.5 text-[10px] font-bold text-gray-500">
-                <AlertCircle size={14} className="text-blue-500 shrink-0" />
-                <span>الردود على الرسائل يتم رصدها في إشعارات ولي الأمر فورياً لسرعة التواصل.</span>
+              {/* Status footer */}
+              <div className="border-t border-gray-100 pt-3 flex items-center justify-between text-[10px] text-gray-400 font-bold">
+                <span className="flex items-center gap-1">
+                  <MessageSquare size={13} />
+                  <span>{trans("تواصل رسمي محمي وموثق بالكامل", "End-to-end official communication")}</span>
+                </span>
+                <span>ID: {selectedMsg.id}</span>
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 space-y-2">
-              <Inbox size={40} className="text-gray-300" />
-              <p className="text-xs font-bold text-gray-500">الرجاء اختيار أحد الرسائل من القائمة الجانبية لقراءة محتواها بالتفصيل.</p>
+            <div className="bg-white border border-gray-150 rounded-xl p-12 text-center text-gray-400 italic text-xs min-h-[400px] flex flex-col items-center justify-center gap-3 shadow-xs">
+              <Mail size={32} className="text-gray-300" />
+              <span>{trans("حدد رسالة من القائمة الجانبية لقراءتها واستعراض محتواها", "Select a letter from the mailbox to preview its details.")}</span>
             </div>
           )}
         </div>
 
       </div>
 
-      {/* Compose Draft Modal */}
+      {/* Compose Message Modal Overlay */}
       {showCompose && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">كتابة وإرسال رسالة جديدة</h3>
-              <button onClick={() => setShowCompose(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <h3 className="font-bold text-gray-900 text-sm">{trans("إنشاء وإرسال رسالة رسمية جديدة", "Compose New School Circular")}</h3>
+              <button onClick={() => setShowCompose(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
-
-            <form onSubmit={handleComposeSubmit} className="p-6 space-y-4 text-xs font-bold text-gray-700">
+            
+            <form onSubmit={handleComposeSubmit} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="block mb-1">حدد جهة الارسال *</label>
+                <label className="text-xs font-bold text-gray-700 block">{trans("المستلم المستهدف *", "Choose Recipient *")}</label>
                 <select 
                   value={newMessage.recipientId}
                   onChange={(e) => setNewMessage({...newMessage, recipientId: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs"
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white"
                 >
-                  <option value="all-parents">جميع أولياء الأمور (تعميم)</option>
-                  <option value="all-teachers">جميع أعضاء هيئة التدريس (تعميم)</option>
-                  <option value="p1">ولي الأمر: عبدالرحمن السديري</option>
-                  <option value="t1">المعلم: أ. ياسر بن سليمان الحربي</option>
+                  <option value="all-parents">{trans("جميع أولياء الأمور بالمدرسة (تعميم أولياء الأمور)", "All School Parents")}</option>
+                  <option value="all-teachers">{trans("جميع الكادر التعليمي والمعلمات (تعميم الكادر)", "All Teaching Staff")}</option>
+                  <option value="p1">{trans("عبدالرحمن بن محمد السديري (ولي أمر)", "Abdulrahman Al-Sudairi (Parent)")}</option>
+                  <option value="t1">{trans("أ. ياسر بن سليمان الحربي (رياضيات)", "Mr. Yasser Al-Harbi (Math)")}</option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="block mb-1">عنوان الموضوع *</label>
+                <label className="text-xs font-bold text-gray-700 block">{trans("عنوان الرسالة أو التعميم *", "Subject Title *")}</label>
                 <input 
-                  type="text" 
-                  required
+                  type="text" required
+                  placeholder={trans("اكتب عنوانًا واضحًا...", "Enter subject topic...")}
                   value={newMessage.subject}
                   onChange={(e) => setNewMessage({...newMessage, subject: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
-                  placeholder="مثال: إشعار بخصوص اليوم المفتوح"
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block mb-1">نص الرسالة أو التعميم *</label>
+                <label className="text-xs font-bold text-gray-700 block">{trans("نص ومحتوى الرسالة *", "Message Content *")}</label>
                 <textarea 
                   required
+                  placeholder={trans("اكتب تفاصيل الإعلان أو الرسالة هنا...", "Type the details of your letter or announcement here...")}
                   value={newMessage.content}
                   onChange={(e) => setNewMessage({...newMessage, content: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white h-28"
-                  placeholder="السلام عليكم ورحمة الله، نحيطكم علماً..."
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs h-24 focus:outline-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                <button type="button" onClick={() => setShowCompose(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-1.5 hover:bg-blue-700">
-                  <Send size={13} />
-                  <span>إرسال الرسالة</span>
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowCompose(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إرسال ونشر الرسالة", "Publish Message")}
                 </button>
               </div>
             </form>

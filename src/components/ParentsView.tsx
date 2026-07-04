@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
-import { Search, Plus, User, Phone, Mail, Award, DollarSign, Calendar, X, Edit2, Trash2 } from 'lucide-react';
+import { Search, Plus, User, Phone, Mail, Award, DollarSign, Calendar, X, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { Parent, Student, Invoice } from '../types';
+import { transData } from '../lib/translateHelper';
 
 interface ParentsViewProps {
   parents: Parent[];
   setParents: React.Dispatch<React.SetStateAction<Parent[]>>;
   students: Student[];
   invoices: Invoice[];
+  lang?: 'ar' | 'en';
 }
 
 export default function ParentsView({
   parents,
   setParents,
   students,
-  invoices
+  invoices,
+  lang = 'ar'
 }: ParentsViewProps) {
   const [search, setSearch] = useState('');
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
@@ -21,6 +24,8 @@ export default function ParentsView({
   // Create / Edit parent modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingParent, setEditingParent] = useState<Parent | null>(null);
+
+  const trans = (ar: string, en: string) => lang === 'ar' ? ar : en;
   
   // Form states
   const [form, setForm] = useState<Partial<Parent>>({
@@ -28,7 +33,7 @@ export default function ParentsView({
   });
 
   const filteredParents = parents.filter(p => 
-    p.name.includes(search) || p.phone.includes(search) || p.job.includes(search)
+    p.name.toLowerCase().includes(search.toLowerCase()) || p.phone.includes(search) || p.job.toLowerCase().includes(search.toLowerCase())
   );
 
   // Helper to fetch children for a parent
@@ -48,310 +53,317 @@ export default function ParentsView({
     return { total, paid, remaining, invoicesCount: parentInvs.length };
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleOpenAdd = () => {
+    setEditingParent(null);
+    setForm({ name: '', phone: '', email: '', job: '', childrenIds: [] });
+    setShowAddModal(true);
+  };
+
+  const handleOpenEdit = (p: Parent) => {
+    setEditingParent(p);
+    setForm({ ...p });
+    setShowAddModal(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.phone) return;
 
     if (editingParent) {
       // Edit
-      const updated = parents.map(p => {
-        if (p.id === editingParent.id) {
-          return {
-            ...p,
-            name: form.name!,
-            phone: form.phone!,
-            email: form.email || '',
-            job: form.job || '',
-            childrenIds: form.childrenIds || []
-          };
-        }
-        return p;
-      });
+      const updated = parents.map(p => p.id === editingParent.id ? { ...p, ...form } as Parent : p);
       setParents(updated);
-      setSelectedParent(null);
+      alert(trans("تم تحديث بيانات ولي الأمر بنجاح!", "Guardian details updated successfully!"));
     } else {
-      // Add
-      const p: Parent = {
+      // Create
+      const newP: Parent = {
         id: `p${Date.now()}`,
-        name: form.name!,
-        phone: form.phone!,
-        email: form.email || '',
-        job: form.job || '',
-        address: '',
+        name: form.name,
+        phone: form.phone,
+        email: form.email || 'parent@school.edu',
+        job: form.job || trans('موظف', 'Employee'),
         childrenIds: form.childrenIds || [],
-        relation: 'أب'
+        address: form.address || '',
+        relation: form.relation || trans('أب', 'Father')
       };
-      setParents([p, ...parents]);
+      setParents([newP, ...parents]);
+      alert(trans("تم تسجيل ولي الأمر الجديد بنجاح!", "New guardian registered successfully!"));
     }
-
     setShowAddModal(false);
-    setEditingParent(null);
-    setForm({ name: '', phone: '', email: '', job: '', childrenIds: [] });
-    alert("تم حفظ ملف ولي الأمر بنجاح!");
   };
 
-  const handleDeleteParent = (id: string) => {
-    if (confirm("هل تريد حذف ملف ولي الأمر هذا نهائياً من سجلات المدرسة؟")) {
+  const handleDelete = (id: string) => {
+    if (confirm(trans("هل تريد إزالة هذا الملف لولي الأمر بالكامل؟", "Do you want to delete this guardian completely?"))) {
       setParents(parents.filter(p => p.id !== id));
       if (selectedParent?.id === id) setSelectedParent(null);
     }
   };
 
-  const handleOpenAdd = () => {
-    setForm({ name: '', phone: '', email: '', job: '', childrenIds: [students[0]?.id || ''] });
-    setEditingParent(null);
-    setShowAddModal(true);
-  };
-
-  const handleOpenEdit = (p: Parent) => {
-    setForm({ ...p });
-    setEditingParent(p);
-    setShowAddModal(true);
-  };
-
   return (
-    <div className="space-y-6 text-right animate-in fade-in duration-200" id="parents-view-container">
+    <div className={`space-y-6 animate-in fade-in duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`} id="parents-view-wrapper">
       
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 font-sans">سجلات وبوابة أولياء الأمور</h2>
-          <p className="text-xs text-gray-500">إدارة معلومات الاتصال لأولياء الأمور ومتابعة المستحقات المالية والتربوية لأسرة الطالب</p>
-        </div>
+      {!selectedParent ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{trans("سجل وملفات أولياء الأمور والمرافقين", "Guardians & Parents Directory")}</h2>
+            <p className="text-xs text-gray-500">{trans("إدارة بيانات تواصل الأباء والأمهات، ربط الأبناء، تتبع الذمم والمستحقات والنشاط", "Manage parent phone books, link children, track outstanding balances, and check general engagement")}</p>
+          </div>
 
+          <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto">
+            <button 
+              onClick={handleOpenAdd}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
+            >
+              <Plus size={15} />
+              <span>{trans("إضافة ولي أمر جديد", "Add New Guardian")}</span>
+            </button>
+          </div>
+        </div>
+      ) : (
         <button 
-          onClick={handleOpenAdd}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+          onClick={() => setSelectedParent(null)}
+          className="text-xs text-gray-500 hover:text-blue-600 font-bold flex items-center gap-1 cursor-pointer"
         >
-          <Plus size={16} />
-          <span>إضافة ولي أمر جديد</span>
+          <ChevronLeft size={16} />
+          <span>{trans("العودة إلى سجل أولياء الأمور", "Back to Guardians Directory")}</span>
         </button>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Parents roster list (2 columns) */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="ابحث باسم ولي الأمر، رقم الجوال، أو المهنة..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-white border border-gray-150 rounded-xl pr-10 pl-4 py-2 text-xs focus:outline-none"
-            />
+      {/* Main View Grid */}
+      {!selectedParent ? (
+        <div className="space-y-6">
+          {/* Search bar */}
+          <div className="bg-white p-4 rounded-xl border border-gray-150 shadow-xs">
+            <div className="relative w-full sm:w-80">
+              <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${lang === 'ar' ? 'right-3' : 'left-3'}`} size={16} />
+              <input 
+                type="text" 
+                placeholder={trans("البحث باسم ولي الأمر، الجوال، أو المهنة...", "Search by guardian name, phone, or occupation...")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={`w-full bg-gray-50 border border-gray-250 rounded-lg py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white ${
+                  lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'
+                }`}
+              />
+            </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden">
-            <table className="w-full text-sm text-right text-gray-500">
-              <thead className="text-xs text-gray-700 bg-gray-50 border-b border-gray-100">
-                <tr>
-                  <th className="px-4 py-3.5">الاسم</th>
-                  <th className="px-4 py-3.5">رقم الاتصال</th>
-                  <th className="px-4 py-3.5">المهنة</th>
-                  <th className="px-4 py-3.5 text-center">عدد الأبناء بالمدارس</th>
-                  <th className="px-4 py-3.5 text-center">إجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {filteredParents.map((p) => {
-                  const kidsCount = p.childrenIds.length;
-                  return (
-                    <tr 
-                      key={p.id} 
-                      className={`hover:bg-gray-50/20 cursor-pointer transition-colors ${
-                        selectedParent?.id === p.id ? 'bg-blue-50/20' : ''
-                      }`}
-                      onClick={() => setSelectedParent(p)}
-                    >
-                      <td className="px-4 py-3.5 font-bold text-gray-900">{p.name}</td>
-                      <td className="px-4 py-3.5 font-mono text-xs">{p.phone}</td>
-                      <td className="px-4 py-3.5 text-xs text-gray-600">{p.job || '---'}</td>
-                      <td className="px-4 py-3.5 text-center font-bold text-blue-600">{kidsCount} أبناء</td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center justify-center gap-2" onClick={(e) => e.stopPropagation()}>
-                          <button 
-                            onClick={() => handleOpenEdit(p)}
-                            className="p-1 rounded text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                          >
-                            <Edit2 size={13} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteParent(p.id)}
-                            className="p-1 rounded text-gray-500 hover:text-rose-600 hover:bg-rose-50"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Selected parent detail card dossier (1 column) */}
-        <div className="lg:col-span-1">
-          {selectedParent ? (
-            <div className="bg-white p-6 rounded-xl border border-gray-150 shadow-xs space-y-6">
-              
-              <div className="border-b border-gray-100 pb-4">
-                <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg mb-3">
-                  {selectedParent.name.charAt(0)}
-                </div>
-                <h3 className="font-extrabold text-sm text-gray-900">{selectedParent.name}</h3>
-                <p className="text-[11px] text-gray-500 mt-1">المهنة: {selectedParent.job || 'غير محددة'}</p>
-                
-                <div className="flex items-center gap-2 mt-3 font-mono text-[10px] text-gray-500">
-                  <Phone size={12} className="text-gray-400" />
-                  <span>{selectedParent.phone}</span>
-                </div>
-                {selectedParent.email && (
-                  <div className="flex items-center gap-2 mt-1.5 font-mono text-[10px] text-gray-500">
-                    <Mail size={12} className="text-gray-400" />
-                    <span>{selectedParent.email}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Linked Children listing */}
-              <div className="space-y-3">
-                <h4 className="font-bold text-xs text-gray-700 flex items-center gap-1.5">
-                  <User size={13} className="text-blue-600" />
-                  <span>الأبناء المنتسبون للمدرسة:</span>
-                </h4>
-                
-                <div className="space-y-2">
-                  {getParentChildren(selectedParent).map(kid => (
-                    <div key={kid.id} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 flex justify-between items-center text-xs">
-                      <div>
-                        <span className="font-bold text-gray-900 block">{kid.name}</span>
-                        <span className="text-[10px] text-gray-400 font-bold block mt-0.5">{kid.grade}</span>
+          {/* Parents grid list */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredParents.map((p) => {
+              const children = getParentChildren(p);
+              const fin = getParentFinancialSummary(p);
+              return (
+                <div key={p.id} className="bg-white border border-gray-150 rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-blue-500/30 transition-all relative">
+                  <div>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center font-bold text-sm">
+                        👤
                       </div>
-                      <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[10px] font-bold">
-                        رقم: {kid.academicId}
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => handleOpenEdit(p)}
+                          className="p-1 rounded text-amber-600 hover:bg-amber-50 cursor-pointer"
+                          title={trans("تعديل بيانات ولي الأمر", "Edit Guardian")}
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(p.id)}
+                          className="p-1 rounded text-red-600 hover:bg-red-50 cursor-pointer"
+                          title={trans("حذف ولي الأمر", "Delete Guardian")}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <h4 className="font-bold text-sm text-gray-950 mb-1">{transData(p.name, lang)}</h4>
+                    <p className="text-[10px] text-gray-400 font-medium block">{transData(p.job, lang)}</p>
+
+                    <div className="space-y-1.5 text-xs text-gray-600 mt-4">
+                      <div className="flex items-center gap-2 font-mono">
+                        <Phone size={13} className="text-gray-400" />
+                        <span>{p.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2 font-mono">
+                        <Mail size={13} className="text-gray-400" />
+                        <span className="truncate">{p.email}</span>
+                      </div>
+                    </div>
+
+                    {/* Associated Kids list snippet */}
+                    <div className="mt-4 border-t border-gray-100 pt-3">
+                      <span className="text-[10px] text-gray-400 font-black block mb-2">{trans("الأبناء والطلاب المرتبطين:", "Linked Children / Students:")}</span>
+                      {children.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {children.map(kid => (
+                            <span key={kid.id} className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">
+                              {transData(kid.name, lang)} ({transData(kid.grade, lang)})
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 italic">{trans("لم يتم ربط أبناء بعد", "No children linked yet")}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Finance status snippet */}
+                  <div className="border-t border-gray-100 pt-3 mt-4 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-gray-400 block text-[9px]">{trans("المستحقات المتبقية", "Outstanding Tuition:")}</span>
+                      <span className={`font-black ${fin.remaining > 0 ? 'text-rose-600' : 'text-green-600'}`}>
+                        {fin.remaining.toLocaleString()} {trans("ريال", "SAR")}
                       </span>
                     </div>
-                  ))}
+
+                    <button 
+                      onClick={() => setSelectedParent(p)}
+                      className="bg-gray-100 hover:bg-blue-50 hover:text-blue-600 text-[10px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-colors"
+                    >
+                      {trans("عرض التفاصيل والملف", "Show Details")}
+                    </button>
+                  </div>
                 </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* Detailed Parent Profile File */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in">
+          
+          {/* Side stats card */}
+          <div className="bg-white border border-gray-150 rounded-xl p-6 shadow-xs space-y-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center font-bold text-2xl mx-auto mb-3">
+                👤
               </div>
+              <h3 className="font-bold text-base text-gray-950">{transData(selectedParent.name, lang)}</h3>
+              <p className="text-xs text-gray-400 font-bold mt-0.5">{transData(selectedParent.job, lang)}</p>
+            </div>
 
-              {/* Financial status summary */}
-              <div className="border-t border-gray-100 pt-4 space-y-3">
-                <h4 className="font-bold text-xs text-gray-700 flex items-center gap-1.5">
-                  <DollarSign size={13} className="text-emerald-600" />
-                  <span>المستحقات والذمم العائلية</span>
-                </h4>
+            <div className="border-t border-gray-100 pt-4 space-y-3 text-xs text-gray-600">
+              <div className="flex justify-between">
+                <span className="text-gray-400 font-bold">{trans("رقم الجوال:", "Phone Number:")}</span>
+                <span className="font-mono text-gray-800 font-bold">{selectedParent.phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400 font-bold">{trans("البريد الإلكتروني:", "Email Address:")}</span>
+                <span className="font-mono text-gray-800 font-bold truncate max-w-[180px]">{selectedParent.email}</span>
+              </div>
+            </div>
 
-                {(() => {
-                  const fin = getParentFinancialSummary(selectedParent);
+            <div className="bg-rose-50 border border-rose-100 rounded-xl p-4 text-center">
+              <span className="text-[10px] text-rose-500 font-bold block">{trans("المديونية الإجمالية المسجلة على الأبناء", "Total Unpaid Tuition Balance:")}</span>
+              <h4 className="text-lg font-black text-rose-700 mt-1">
+                {getParentFinancialSummary(selectedParent).remaining.toLocaleString()} {trans("ريال", "SAR")}
+              </h4>
+            </div>
+          </div>
+
+          {/* Children and logs details */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white border border-gray-150 rounded-xl p-6 shadow-xs space-y-4">
+              <h3 className="font-bold text-xs text-gray-900 border-b border-gray-100 pb-2">{trans("بطاقات الأبناء المقيدين بالمدرسة وحالتهم الأكاديمية", "Registered Children & Academic Transcripts")}</h3>
+              
+              <div className="space-y-4">
+                {getParentChildren(selectedParent).map(kid => {
+                  const kidAny = kid as any;
                   return (
-                    <div className="grid grid-cols-2 gap-3 text-center text-xs">
-                      <div className="bg-green-50 p-2.5 rounded-lg border border-green-100">
-                        <span className="text-[9px] text-gray-500 font-bold block">المبالغ المسددة</span>
-                        <span className="font-mono font-bold text-green-700 mt-0.5 block">{fin.paid.toLocaleString()} ر.س</span>
+                    <div key={kid.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col sm:flex-row justify-between gap-4">
+                      <div>
+                        <h4 className="font-bold text-xs text-gray-900">{transData(kid.name, lang)}</h4>
+                        <p className="text-[10px] text-gray-400 font-medium mt-0.5">{transData(kid.grade, lang)} - {transData(kid.division, lang)} | {trans("رقم أكاديمي:", "Academic ID:")} {kid.academicId}</p>
                       </div>
-                      <div className="bg-rose-50 p-2.5 rounded-lg border border-rose-100">
-                        <span className="text-[9px] text-gray-500 font-bold block">المتبقي المطلوب</span>
-                        <span className="font-mono font-bold text-rose-700 mt-0.5 block">{fin.remaining.toLocaleString()} ر.س</span>
+
+                      <div className="flex items-center gap-4 text-xs">
+                        <div className="text-center bg-white px-3 py-1.5 rounded border border-gray-100">
+                          <span className="text-gray-400 block text-[9px] font-bold">{trans("الغياب اليومي", "Absence count:")}</span>
+                          <span className="font-bold text-red-500 mt-0.5 block">{kidAny.absenceCount || 0} {trans("أيام", "days")}</span>
+                        </div>
+                        <div className="text-center bg-white px-3 py-1.5 rounded border border-gray-100">
+                          <span className="text-gray-400 block text-[9px] font-bold">{trans("المعدل الدراسي", "GPA Rate:")}</span>
+                          <span className="font-bold text-blue-600 mt-0.5 block">{kidAny.gpa || 95}%</span>
+                        </div>
                       </div>
                     </div>
                   );
-                })()}
+                })}
               </div>
+            </div>
+          </div>
 
-            </div>
-          ) : (
-            <div className="bg-white p-12 rounded-xl border border-gray-150 shadow-xs text-center text-gray-400">
-              <User size={36} className="mx-auto mb-3 text-gray-300" />
-              <p className="text-xs font-bold text-gray-500">اختر ملف أحد أولياء الأمور من القائمة الجانبية لعرض بيانات عائلته وأبنائه والوضع المالي بالتفصيل.</p>
-            </div>
-          )}
         </div>
+      )}
 
-      </div>
-
-      {/* CREATE / EDIT MODAL */}
+      {/* Add / Edit modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95 duration-150">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">{editingParent ? 'تحديث ملف ولي الأمر' : 'إضافة ملف ولي أمر جديد'}</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              <h3 className="font-bold text-gray-900 text-sm">
+                {editingParent ? trans("تعديل بيانات ملف ولي الأمر", "Edit Guardian Info") : trans("تسجيل ولي أمر جديد للطلاب", "Register New Parent")}
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-4 text-xs font-bold text-gray-700">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="block mb-1">اسم ولي الأمر الثلاثي *</label>
+                <label className="text-xs font-bold text-gray-700 block">{trans("الاسم الكامل لولي الأمر *", "Guardian Full Name *")}</label>
                 <input 
-                  type="text" 
-                  required
+                  type="text" required
+                  placeholder="e.g. عبدالرحمن السديري"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="أحمد بن عبدالعزيز الحميد"
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block mb-1">رقم الجوال *</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder="05xxxxxxx"
-                    className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="block mb-1">المهنة / جهة العمل</label>
-                  <input 
-                    type="text" 
-                    value={form.job}
-                    onChange={(e) => setForm({ ...form, job: e.target.value })}
-                    placeholder="مهندس برمجيات، معلم..."
-                    className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
-                  />
-                </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-700 block">{trans("رقم الجوال النشط للتواصل *", "Active Phone Number *")}</label>
+                <input 
+                  type="text" required
+                  placeholder="e.g. 050XXXXXXX"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
+                />
               </div>
 
               <div className="space-y-1">
-                <label className="block mb-1">البريد الإلكتروني</label>
+                <label className="text-xs font-bold text-gray-700 block">{trans("البريد الإلكتروني", "Email Address")}</label>
                 <input 
-                  type="email" 
+                  type="email"
+                  placeholder="e.g. parent@school.edu"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="parent@school.com"
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="block mb-1">تنسيب الأبناء (الرقم الأكاديمي للابن) *</label>
-                <select 
-                  multiple
-                  value={form.childrenIds}
-                  onChange={(e) => {
-                    const selected = Array.from(e.target.selectedOptions).map((option: any) => option.value);
-                    setForm({ ...form, childrenIds: selected });
-                  }}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white h-24"
-                >
-                  {students.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.academicId})</option>
-                  ))}
-                </select>
-                <p className="text-[10px] text-gray-400 font-medium mt-1">اضغط بزر Ctrl (أو Cmd في Mac) لتحديد أكثر من ابن واحد للربط العائلي.</p>
+                <label className="text-xs font-bold text-gray-700 block">{trans("المهنة / جهة العمل", "Occupation")}</label>
+                <input 
+                  type="text"
+                  placeholder="e.g. مهندس"
+                  value={form.job}
+                  onChange={(e) => setForm({ ...form, job: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
+                />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-gray-100">
-                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg">حفظ ومطابقة الملف</button>
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer">
+                  {trans("حفظ وتأكيد البيانات", "Confirm & Save")}
+                </button>
               </div>
             </form>
           </div>

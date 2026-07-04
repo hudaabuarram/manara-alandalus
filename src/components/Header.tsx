@@ -12,6 +12,7 @@ interface HeaderProps {
   activeNotificationsCount: number;
   unreadMessagesCount: number;
   onLogout?: () => void;
+  lang: 'ar' | 'en';
 }
 
 export default function Header({ 
@@ -20,18 +21,25 @@ export default function Header({
   userEmail,
   activeNotificationsCount,
   unreadMessagesCount,
-  onLogout
+  onLogout,
+  lang
 }: HeaderProps) {
   const [showRoleSwitcher, setShowRoleSwitcher] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   
   // Quick Switch Roles Configuration
-  const rolesList: Array<{ id: UserRole; name: string; desc: string; icon: string }> = [
+  const rolesList: Array<{ id: UserRole; name: string; desc: string; icon: string }> = lang === 'ar' ? [
     { id: 'admin', name: 'المدير العام', desc: 'صلاحيات كاملة لإدارة النظام والمالية', icon: '👑' },
     { id: 'supervisor', name: 'المشرف الأكاديمي', desc: 'متابعة المعلمين والطلاب وتنسيق الجداول', icon: '🕵️‍♂️' },
     { id: 'teacher', name: 'المعلم (أ. ياسر)', desc: 'تسجيل الحضور، إدخال الدرجات والواجبات', icon: '👨‍🏫' },
     { id: 'student', name: 'الطالب (محمد السديري)', desc: 'عرض الجدول الدراسي، الواجبات والدرجات', icon: '👨‍🎓' },
     { id: 'parent', name: 'ولي الأمر (عبدالرحمن)', desc: 'متابعة الأبناء، الحضور والرسوم المالية', icon: '👨‍👩‍👦' }
+  ] : [
+    { id: 'admin', name: 'General Manager', desc: 'Full authority for system and financial management', icon: '👑' },
+    { id: 'supervisor', name: 'Academic Supervisor', desc: 'Monitor teachers, students, and coordinate schedules', icon: '🕵️‍♂️' },
+    { id: 'teacher', name: 'Class Teacher (Yasser)', desc: 'Record attendance, enter grades and assignments', icon: '👨‍🏫' },
+    { id: 'student', name: 'Student (M. Al-Sudairy)', desc: 'View schedule, assignments, and grades', icon: '👨‍🎓' },
+    { id: 'parent', name: 'Parent (Abdulrahman)', desc: 'Follow up children, attendance and financial fees', icon: '👨‍👩‍👦' }
   ];
 
   const getRoleBadgeStyle = (role: UserRole) => {
@@ -45,6 +53,15 @@ export default function Header({
   };
 
   const getActiveRoleLabel = (role: UserRole) => {
+    if (lang === 'en') {
+      switch (role) {
+        case 'admin': return 'General Manager';
+        case 'supervisor': return 'Supervisor';
+        case 'teacher': return 'Teacher';
+        case 'student': return 'Student';
+        case 'parent': return 'Parent';
+      }
+    }
     switch (role) {
       case 'admin': return 'المدير العام';
       case 'supervisor': return 'المشرف';
@@ -55,22 +72,29 @@ export default function Header({
   };
 
   // Static mock notifications for the bell icon
-  const notifications = [
+  const notifications = lang === 'ar' ? [
     { id: 1, title: "تم تحديث جدول الصف الأول الثانوي", time: "منذ ٥ دقائق", type: "schedule" },
     { id: 2, title: "سجل الطالب فيصل السعدون تأخراً اليوم", time: "منذ ساعة", type: "attendance" },
     { id: 3, title: "قسط دراسي مستحق السداد خلال ٣ أيام", time: "منذ ساعتين", type: "finance" },
     { id: 4, title: "تم إضافة كتاب جديد في قسم الرياضيات بالمكتبة", time: "منذ يوم", type: "library" }
+  ] : [
+    { id: 1, title: "The first secondary grade schedule has been updated", time: "5 minutes ago", type: "schedule" },
+    { id: 2, title: "Student Faisal Al-Sadoun registered late today", time: "1 hour ago", type: "attendance" },
+    { id: 3, title: "Tuition installment due in 3 days", time: "2 hours ago", type: "finance" },
+    { id: 4, title: "A new book has been added to the Mathematics library section", time: "1 day ago", type: "library" }
   ];
 
   return (
     <header className="bg-white border-b border-gray-200 h-16 px-6 flex items-center justify-between sticky top-0 z-30" id="main-header">
       {/* Search Input Container */}
       <div className="flex items-center w-80 relative hidden md:flex" id="global-search-container">
-        <Search className="absolute right-3 text-gray-400" size={18} />
+        <Search className={`absolute text-gray-400 ${lang === 'ar' ? 'right-3' : 'left-3'}`} size={18} />
         <input 
           type="text" 
-          placeholder="البحث في النظام (الطلاب، المعلمين، الفواتير...)" 
-          className="w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 pr-10 pl-4 text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all"
+          placeholder={lang === 'ar' ? "البحث في النظام (الطلاب، المعلمين، الفواتير...)" : "Search system (students, teachers, invoices...)"} 
+          className={`w-full bg-gray-50 border border-gray-200 rounded-lg py-1.5 text-xs font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white transition-all ${
+            lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'
+          }`}
           id="global-search-input"
         />
       </div>
@@ -78,7 +102,9 @@ export default function Header({
       {/* Title block for small screens */}
       <div className="md:hidden flex items-center gap-2" id="small-brand-header">
         <span className="text-2xl">🏫</span>
-        <span className="font-bold text-gray-900 text-sm">منارة الأندلس</span>
+        <span className="font-bold text-gray-900 text-sm">
+          {lang === 'ar' ? 'منارة الأندلس' : 'Manarat Al-Andalus'}
+        </span>
       </div>
 
       {/* Action Controls & Switchers */}
@@ -92,15 +118,23 @@ export default function Header({
             id="role-dropdown-trigger"
           >
             <UserCheck size={14} />
-            <span>عرض بصفتي: {getActiveRoleLabel(currentRole)}</span>
+            <span>
+              {lang === 'ar' ? `عرض بصفتي: ${getActiveRoleLabel(currentRole)}` : `View as: ${getActiveRoleLabel(currentRole)}`}
+            </span>
             <ChevronDown size={14} className={`transition-transform ${showRoleSwitcher ? 'rotate-180' : ''}`} />
           </button>
 
           {showRoleSwitcher && (
-            <div className="absolute left-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 text-right animate-in fade-in slide-in-from-top-1 duration-150" id="role-switcher-dropdown">
+            <div className={`absolute mt-2 w-72 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
+              lang === 'ar' ? 'left-0 text-right' : 'right-0 text-left'
+            }`} id="role-switcher-dropdown">
               <div className="px-4 py-2 border-b border-gray-100">
-                <span className="font-bold text-xs text-gray-800 block">تبديل حساب الصلاحية للمعاينة</span>
-                <span className="text-[10px] text-gray-400">انقر للتبديل الفوري بين أدوار النظام</span>
+                <span className="font-bold text-xs text-gray-800 block">
+                  {lang === 'ar' ? 'تبديل حساب الصلاحية للمعاينة' : 'Switch Role Account for Preview'}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  {lang === 'ar' ? 'انقر للتبديل الفوري بين أدوار النظام' : 'Click to quickly switch system roles'}
+                </span>
               </div>
               <div className="max-h-80 overflow-y-auto p-1.5 space-y-1">
                 {rolesList.map((r) => (
@@ -110,7 +144,9 @@ export default function Header({
                       setCurrentRole(r.id);
                       setShowRoleSwitcher(false);
                     }}
-                    className={`w-full flex items-start gap-3 p-2 rounded-lg text-right hover:bg-gray-50 transition-colors ${
+                    className={`w-full flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors ${
+                      lang === 'ar' ? 'text-right' : 'text-left'
+                    } ${
                       currentRole === r.id ? 'bg-blue-50/70 border border-blue-100' : 'border border-transparent'
                     }`}
                   >
@@ -119,7 +155,9 @@ export default function Header({
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-xs text-gray-900">{r.name}</span>
                         {currentRole === r.id && (
-                          <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-sm font-semibold">نشط</span>
+                          <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-sm font-semibold">
+                            {lang === 'ar' ? 'نشط' : 'Active'}
+                          </span>
                         )}
                       </div>
                       <p className="text-[10px] text-gray-500 leading-normal mt-0.5">{r.desc}</p>
@@ -135,7 +173,7 @@ export default function Header({
         <div className="relative" id="messages-header-icon">
           <button 
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative"
-            title="صندوق الرسائل"
+            title={lang === 'ar' ? "صندوق الرسائل" : "Inbox"}
           >
             <Mail size={18} />
             {unreadMessagesCount > 0 && (
@@ -151,7 +189,7 @@ export default function Header({
           <button 
             onClick={() => setShowNotifications(!showNotifications)}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative"
-            title="الإشعارات المدرسية"
+            title={lang === 'ar' ? "الإشعارات المدرسية" : "Notifications"}
           >
             <Bell size={18} />
             {activeNotificationsCount > 0 && (
@@ -162,10 +200,16 @@ export default function Header({
           </button>
 
           {showNotifications && (
-            <div className="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 text-right animate-in fade-in slide-in-from-top-1 duration-150" id="notifications-dropdown">
+            <div className={`absolute mt-2 w-80 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150 ${
+              lang === 'ar' ? 'left-0 text-right' : 'right-0 text-left'
+            }`} id="notifications-dropdown">
               <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
-                <span className="font-bold text-xs text-gray-800">التنبيهات المدرسية الأخيرة</span>
-                <span className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">تحديد كمقروء</span>
+                <span className="font-bold text-xs text-gray-800">
+                  {lang === 'ar' ? 'التنبيهات المدرسية الأخيرة' : 'Recent School Notifications'}
+                </span>
+                <span className="text-[10px] text-blue-600 font-bold hover:underline cursor-pointer">
+                  {lang === 'ar' ? 'تحديد كمقروء' : 'Mark all read'}
+                </span>
               </div>
               <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
                 {notifications.map((notif) => (
@@ -183,9 +227,11 @@ export default function Header({
         </div>
 
         {/* User Account Details */}
-        <div className="flex items-center gap-3 border-r border-gray-200 pr-4" id="header-user-profile-details">
-          <div className="text-right hidden sm:block">
-            <span className="text-xs font-bold text-gray-800 block">أ. هدى سليمان</span>
+        <div className={`flex items-center gap-3 ${lang === 'ar' ? 'border-r pr-4 pl-1' : 'border-l pl-4 pr-1'} border-gray-200`} id="header-user-profile-details">
+          <div className={`${lang === 'ar' ? 'text-right' : 'text-left'} hidden sm:block`}>
+            <span className="text-xs font-bold text-gray-800 block">
+              {lang === 'ar' ? 'أ. هدى سليمان' : 'Ms. Huda Suleiman'}
+            </span>
             <span className="text-[10px] text-gray-400 font-medium truncate max-w-28 block">{userEmail}</span>
           </div>
           <div className="w-9.5 h-9.5 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-sm">
@@ -195,7 +241,7 @@ export default function Header({
             <button
               onClick={onLogout}
               className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-              title="تسجيل الخروج"
+              title={lang === 'ar' ? "تسجيل الخروج" : "Log out"}
               id="header-logout-btn"
             >
               <LogOut size={18} />

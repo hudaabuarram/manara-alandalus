@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, Plus, Printer, AlertTriangle, Check, BookOpen, Clock, X, Trash } from 'lucide-react';
 import { ScheduleItem, Subject, Teacher, GradeClass } from '../types';
+import { transData } from '../lib/translateHelper';
 
 interface ScheduleViewProps {
   schedule: ScheduleItem[];
@@ -8,6 +9,7 @@ interface ScheduleViewProps {
   subjects: Subject[];
   teachers: Teacher[];
   classes: GradeClass[];
+  lang?: 'ar' | 'en';
 }
 
 export default function ScheduleView({
@@ -15,7 +17,8 @@ export default function ScheduleView({
   setSchedule,
   subjects,
   teachers,
-  classes
+  classes,
+  lang = 'ar'
 }: ScheduleViewProps) {
   const [selectedGrade, setSelectedGrade] = useState('الصف الأول الثانوي');
   const [selectedDivision, setSelectedDivision] = useState('أ');
@@ -31,6 +34,8 @@ export default function ScheduleView({
   });
   
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+
+  const trans = (ar: string, en: string) => lang === 'ar' ? ar : en;
 
   const days: Array<'الأحد' | 'الأثنين' | 'الثلاثاء' | 'الأربعاء' | 'الخميس'> = ['الأحد', 'الأثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
   const periods = [1, 2, 3, 4, 5, 6];
@@ -66,8 +71,11 @@ export default function ScheduleView({
     );
 
     if (teacherConflict) {
-      const teacherName = teachers.find(t => t.id === teachId)?.name || 'المعلم';
-      setConflictWarning(`تعارض في الجدول! المعلم (${teacherName}) مشغول بتدريس صف (${teacherConflict.grade} - الشعبة ${teacherConflict.division}) في الحصة ${slotPeriod} يوم ${slotDay}.`);
+      const teacherName = teachers.find(t => t.id === teachId)?.name || trans('المعلم', 'Teacher');
+      setConflictWarning(trans(
+        `تعارض في الجدول! المعلم (${teacherName}) مشغول بتدريس صف (${teacherConflict.grade} - الشعبة ${teacherConflict.division}) في الحصة ${slotPeriod} يوم ${slotDay}.`,
+        `Schedule conflict! Teacher (${transData(teacherName, lang)}) is busy teaching class (${transData(teacherConflict.grade, lang)} - Division ${transData(teacherConflict.division, lang)}) in period ${slotPeriod} on ${transData(slotDay, lang)}.`
+      ));
       return;
     }
 
@@ -79,7 +87,10 @@ export default function ScheduleView({
     );
 
     if (roomConflict) {
-      setConflictWarning(`تعارض في القاعات! القاعة المحددة (${slotRoom}) محجوزة لصف (${roomConflict.grade} - الشعبة ${roomConflict.division}) في الحصة ${slotPeriod} يوم ${slotDay}.`);
+      setConflictWarning(trans(
+        `تعارض في القاعات! القاعة المحددة (${slotRoom}) محجوزة لصف (${roomConflict.grade} - الشعبة ${roomConflict.division}) في الحصة ${slotPeriod} يوم ${slotDay}.`,
+        `Classroom conflict! Room (${transData(slotRoom, lang)}) is reserved for class (${transData(roomConflict.grade, lang)} - Division ${transData(roomConflict.division, lang)}) in period ${slotPeriod} on ${transData(slotDay, lang)}.`
+      ));
       return;
     }
 
@@ -92,7 +103,10 @@ export default function ScheduleView({
     );
 
     if (classConflict) {
-      setConflictWarning(`هذا الصف الدراسي والشعبة لديهم مادة مقررة بالفعل في الحصة ${slotPeriod} يوم ${slotDay}. قم بحذف المادة القديمة أولاً.`);
+      setConflictWarning(trans(
+        `هذا الصف الدراسي والشعبة لديهم مادة مقررة بالفعل في الحصة ${slotPeriod} يوم ${slotDay}. قم بحذف المادة القديمة أولاً.`,
+        `This grade and division already have a subject scheduled in period ${slotPeriod} on ${transData(slotDay, lang)}. Delete the old slot first.`
+      ));
       return;
     }
 
@@ -113,136 +127,155 @@ export default function ScheduleView({
   };
 
   const handleDeleteSlot = (id: string) => {
-    if (confirm("هل تريد إزالة هذه الحصة الدراسية من الجدول المعتمد؟")) {
+    if (confirm(trans("هل تريد إزالة هذه الحصة الدراسية من الجدول؟", "Do you want to remove this period from the schedule?"))) {
       setSchedule(schedule.filter(item => item.id !== id));
     }
   };
 
-  const getSubjectName = (id: string) => subjects.find(s => s.id === id)?.name || '';
-  const getTeacherName = (id: string) => teachers.find(t => t.id === id)?.name || '';
+  const getSubjectName = (subId: string) => {
+    const sub = subjects.find(s => s.id === subId);
+    return sub ? sub.name : trans('مادة غير معروفة', 'Unknown Subject');
+  };
 
-  const handlePrint = () => {
+  const getTeacherName = (tId: string) => {
+    const t = teachers.find(teach => teach.id === tId);
+    return t ? t.name : trans('معلم غير معروف', 'Unknown Teacher');
+  };
+
+  const handlePrintSchedule = () => {
     window.print();
   };
 
   return (
-    <div className="space-y-6 text-right animate-in fade-in duration-200" id="schedule-view-container">
+    <div className={`space-y-6 animate-in fade-in duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`} id="schedule-dashboard-container">
       
-      {/* Header and Classroom selection */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4" id="schedule-header">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">جدولة الحصص والخطط الدراسية</h2>
-          <p className="text-xs text-gray-500">منظم أسبوعي ذكي مع خوارزمية رصد تعارض المعلمين والمختبرات المدرسية</p>
+          <h2 className="text-lg font-bold text-gray-900">{trans("تنظيم وإدارة الجدول الدراسي", "School Schedule & Timetable")}</h2>
+          <p className="text-xs text-gray-500">{trans("المخطط الإسبوعي وتسكين المعلمين، تلافي التعارض في الحصص والقاعات وتخطيط الشعب", "Weekly timetable, classroom planning, teacher allocation, and conflict resolution")}</p>
         </div>
-
-        <div className="flex items-center gap-3">
+        
+        <div className="flex items-center gap-3 shrink-0">
           <button 
-            onClick={handlePrint}
-            className="p-2 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 flex items-center gap-2 text-xs font-bold"
-            title="طباعة الجدول الأسبوعي"
+            onClick={handlePrintSchedule}
+            className="bg-white border border-gray-250 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 transition-colors shadow-xs cursor-pointer"
           >
             <Printer size={15} />
-            <span>طباعة الجدول</span>
+            <span>{trans("طباعة الجدول", "Print Schedule")}</span>
           </button>
           
           <button 
-            onClick={() => {
-              setConflictWarning(null);
-              setShowAddSlot(true);
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors"
+            onClick={() => setShowAddSlot(true)}
+            className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-xs cursor-pointer"
           >
-            <Plus size={16} />
-            <span>إضافة حصة دراسية</span>
+            <Plus size={15} />
+            <span>{trans("تسكين حصة جديدة", "Schedule New Slot")}</span>
           </button>
         </div>
       </div>
 
-      {/* Select active Grade and Division */}
-      <div className="bg-white p-4 rounded-xl border border-gray-150 shadow-xs flex items-center gap-4 flex-wrap" id="schedule-selectors">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500 whitespace-nowrap">عرض جدول الصف:</span>
-          <select 
-            value={selectedGrade}
-            onChange={(e) => setSelectedGrade(e.target.value)}
-            className="bg-gray-50 border border-gray-250 rounded-lg px-3 py-1 text-xs focus:outline-none"
-          >
-            {classes.map(c => (
-              <option key={c.id} value={c.name}>{c.name}</option>
-            ))}
-          </select>
+      {/* Class and Division Filter Ribbon */}
+      <div className="bg-white p-4 rounded-xl border border-gray-150 shadow-xs flex flex-wrap items-center justify-between gap-4" id="schedule-filters">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 font-bold block">{trans("الصف الدراسي المحدد:", "Selected Grade:")}</span>
+            <select 
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="bg-gray-50 border border-gray-250 rounded-lg px-3 py-1 text-xs focus:outline-none"
+            >
+              <option value="الصف الأول الثانوي">{trans("الصف الأول الثانوي", "1st Grade - Secondary")}</option>
+              <option value="الصف الثاني الثانوي">{trans("الصف الثاني الثانوي", "2nd Grade - Secondary")}</option>
+              <option value="الصف الثالث المتوسط">{trans("الصف الثالث المتوسط", "3rd Grade - Intermediate")}</option>
+              <option value="الصف الأول المتوسط">{trans("الصف الأول المتوسط", "1st Grade - Intermediate")}</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] text-gray-400 font-bold block">{trans("الشعبة:", "Division:")}</span>
+            <div className="flex items-center gap-1">
+              {['أ', 'ب', 'ج'].map((div) => {
+                const isAct = selectedDivision === div;
+                return (
+                  <button
+                    key={div}
+                    onClick={() => setSelectedDivision(div)}
+                    className={`w-7 h-7 rounded-lg text-xs font-bold border transition-colors cursor-pointer ${
+                      isAct 
+                        ? 'bg-blue-600 border-blue-600 text-white shadow-xs' 
+                        : 'bg-gray-50 border-gray-250 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {transData(div, lang)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500 whitespace-nowrap">الشعبة:</span>
-          <select 
-            value={selectedDivision}
-            onChange={(e) => setSelectedDivision(e.target.value)}
-            className="bg-gray-50 border border-gray-250 rounded-lg px-3 py-1 text-xs focus:outline-none"
-          >
-            <option value="أ">الشعبة أ</option>
-            <option value="ب">الشعبة ب</option>
-            <option value="ج">الشعبة ج</option>
-          </select>
+        <div className="flex items-center gap-2 bg-blue-50/50 px-3 py-2 rounded-lg border border-blue-100/50">
+          <BookOpen className="text-blue-600" size={16} />
+          <span className="text-[10px] text-blue-900 font-bold">
+            {trans("الفصل الدراسي الحالي: الفصل الدراسي الأول (خريف ٢٠٢٦)", "Current Semester: First Semester (Fall 2026)")}
+          </span>
         </div>
       </div>
 
-      {/* Weekly Schedule Grid */}
-      <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden print:border-none print:shadow-none" id="weekly-schedule-grid">
+      {/* Main Weekly Interactive Grid */}
+      <div className="bg-white rounded-xl border border-gray-150 shadow-xs overflow-hidden" id="print-schedule-area">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="p-4 border-l border-gray-150 font-bold text-xs text-gray-700 w-28 text-center">اليوم / الحصة</th>
+              <tr className="bg-gray-50 border-b border-gray-150 text-gray-700 font-bold">
+                <th className={`p-3.5 border-r border-gray-150 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{trans("اليوم / الحصص", "Day / Periods")}</th>
                 {periods.map(p => (
-                  <th key={p} className="p-4 border-l border-gray-150 font-bold text-xs text-gray-700 text-center">
-                    <div className="font-extrabold text-blue-600">الحصة {p}</div>
-                    <div className="text-[9px] text-gray-400 font-medium mt-0.5">
-                      {p === 1 ? '08:00 - 08:45' :
-                       p === 2 ? '08:45 - 09:30' :
-                       p === 3 ? '09:45 - 10:30' : // Break in-between
-                       p === 4 ? '10:30 - 11:15' :
-                       p === 5 ? '11:30 - 12:15' : '12:15 - 01:00'}
+                  <th key={p} className="p-3.5 text-center border-r border-gray-150 w-40">
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="text-[10px] font-bold text-gray-500">{trans("الحصة", "Period")} {p}</span>
+                      <span className="text-[9px] font-mono text-gray-400 mt-0.5">
+                        {p === 1 ? '08:00 - 08:45' :
+                         p === 2 ? '08:50 - 09:35' :
+                         p === 3 ? '09:55 - 10:40' :
+                         p === 4 ? '10:45 - 11:30' :
+                         p === 5 ? '11:50 - 12:35' : '12:40 - 13:25'}
+                      </span>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {days.map(day => (
-                <tr key={day} className="hover:bg-gray-50/20 transition-colors">
-                  <td className="p-4 border-l border-gray-150 font-extrabold text-xs text-gray-900 bg-gray-50/50 text-center">
-                    {day}
+            <tbody className="divide-y divide-gray-150">
+              {days.map((day) => (
+                <tr key={day} className="hover:bg-gray-50/30">
+                  <td className={`p-4 font-bold bg-gray-50 border-r border-gray-150 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+                    {transData(day, lang)}
                   </td>
-                  {periods.map(period => {
+                  {periods.map((period) => {
                     const slot = getSlot(day, period);
                     return (
-                      <td key={period} className="p-2 border-l border-gray-150 min-h-[90px] w-40 relative group">
+                      <td key={period} className="p-2 border-r border-gray-150 text-center relative group min-h-24">
                         {slot ? (
-                          <div className="bg-blue-50/70 border border-blue-100 rounded-lg p-2.5 flex flex-col justify-between h-full transition-shadow hover:shadow-xs text-right">
-                            <button 
-                              onClick={() => handleDeleteSlot(slot.id)}
-                              className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-700 transition-opacity p-0.5 rounded hover:bg-rose-50"
-                              title="حذف الحصة"
-                            >
-                              <Trash size={12} />
-                            </button>
+                          <div className="bg-blue-50/70 border border-blue-200 rounded-lg p-2.5 animate-in zoom-in-95 duration-100 hover:shadow-xs transition-shadow flex flex-col justify-between min-h-[5.5rem]">
                             <div>
-                              <div className="font-bold text-xs text-blue-900 line-clamp-1">{getSubjectName(slot.subjectId)}</div>
-                              <div className="text-[10px] text-gray-500 font-medium mt-1">{getTeacherName(slot.teacherId)}</div>
+                              <div className="font-bold text-blue-900 text-xs truncate">{transData(getSubjectName(slot.subjectId), lang)}</div>
+                              <div className="text-[9px] text-blue-700 mt-1 truncate font-medium">{transData(getTeacherName(slot.teacherId), lang)}</div>
                             </div>
-                            <div className="text-[9px] font-bold text-blue-600 bg-blue-100/50 rounded px-1.5 py-0.5 mt-2 self-start">
-                              {slot.room}
+                            <div className="flex items-center justify-between border-t border-blue-100/60 mt-1.5 pt-1">
+                              <span className="font-bold text-[9px] text-blue-600 bg-white border border-blue-100 px-1.5 py-0.5 rounded-sm">{transData(slot.room, lang)}</span>
+                              <button 
+                                onClick={() => handleDeleteSlot(slot.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded cursor-pointer"
+                                title={trans("حذف الحصة", "Remove slot")}
+                              >
+                                <Trash size={11} />
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          <div className="h-full flex items-center justify-center border border-dashed border-gray-200 rounded-lg py-6 text-gray-300 font-medium text-[10px] group-hover:border-blue-300 group-hover:text-blue-500 transition-all cursor-pointer"
-                               onClick={() => {
-                                 setConflictWarning(null);
-                                 setNewSlot({...newSlot, day: day as any, period});
-                                 setShowAddSlot(true);
-                               }}>
-                            + شاغرة
+                          <div className="flex items-center justify-center text-gray-300 italic text-[9px] h-full min-h-[5.5rem] border border-dashed border-gray-100 rounded-lg">
+                            -
                           </div>
                         )}
                       </td>
@@ -257,97 +290,126 @@ export default function ScheduleView({
 
       {/* Add Slot Modal */}
       {showAddSlot && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-md overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-xl shadow-xl border border-gray-200 w-full max-w-lg overflow-hidden flex flex-col">
             <div className="p-4 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="font-bold text-gray-900 text-sm">تسجيل حصة جديدة بالجدول الدراسى</h3>
-              <button onClick={() => setShowAddSlot(false)} className="text-gray-400 hover:text-gray-600"><X size={18}/></button>
+              <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                <Clock className="text-blue-600" size={18} />
+                <span>{trans("تسكين وتخطيط حصة دراسية", "Schedule School Period Slot")}</span>
+              </h3>
+              <button onClick={() => setShowAddSlot(false)} className="p-1 rounded hover:bg-gray-200 text-gray-500 cursor-pointer">
+                <X size={18} />
+              </button>
             </div>
-
+            
             <form onSubmit={handleAddSlotSubmit} className="p-6 space-y-4">
-              
-              {/* Collision alert window */}
               {conflictWarning && (
-                <div className="bg-red-50 border border-red-100 text-red-700 p-3.5 rounded-lg flex items-start gap-2.5 animate-bounce">
-                  <AlertTriangle className="shrink-0 mt-0.5 text-red-600" size={16} />
-                  <p className="text-[11px] font-bold leading-normal">{conflictWarning}</p>
+                <div className="p-3 bg-red-50 border border-red-150 text-red-800 rounded-lg text-xs font-medium flex items-start gap-2.5 animate-bounce">
+                  <AlertTriangle className="text-red-600 shrink-0 mt-0.5" size={15} />
+                  <span>{conflictWarning}</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4 text-xs font-bold text-gray-700">
-                <div>
-                  <span className="block mb-1">اليوم المعتمد</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("الصف الدراسي المختار", "Selected Grade")}</label>
+                  <input 
+                    type="text" disabled 
+                    value={transData(selectedGrade, lang)}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-500 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("الشعبة", "Division")}</label>
+                  <input 
+                    type="text" disabled 
+                    value={transData(selectedDivision, lang)}
+                    className="w-full bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-500 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("المادة الدراسية المقررة", "Subject *")}</label>
+                  <select 
+                    value={newSlot.subjectId}
+                    onChange={(e) => setNewSlot({...newSlot, subjectId: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
+                  >
+                    {subjects.map(s => (
+                      <option key={s.id} value={s.id}>{transData(s.name, lang)} ({s.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("المعلم المكلّف بالتدريس", "Assigned Teacher *")}</label>
+                  <select 
+                    value={newSlot.teacherId}
+                    onChange={(e) => setNewSlot({...newSlot, teacherId: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
+                  >
+                    {teachers.map(t => (
+                      <option key={t.id} value={t.id}>{transData(t.name, lang)} - {transData(t.specialization, lang)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("اليوم", "Day *")}</label>
                   <select 
                     value={newSlot.day}
                     onChange={(e) => setNewSlot({...newSlot, day: e.target.value as any})}
-                    className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+                    className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
                   >
-                    {days.map(d => <option key={d} value={d}>{d}</option>)}
+                    {days.map(d => (
+                      <option key={d} value={d}>{transData(d, lang)}</option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <span className="block mb-1">رقم الحصة الدراسية</span>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("رقم الحصة الدراسية", "Period Number *")}</label>
                   <select 
                     value={newSlot.period}
                     onChange={(e) => setNewSlot({...newSlot, period: Number(e.target.value)})}
-                    className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+                    className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
                   >
-                    {periods.map(p => <option key={p} value={p}>الحصة {p}</option>)}
+                    {periods.map(p => (
+                      <option key={p} value={p}>{trans("الحصة", "Period")} {p}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1 col-span-2">
+                  <label className="text-xs font-bold text-gray-700 block">{trans("القاعة أو المختبر المخصص", "Assigned Room / Lab *")}</label>
+                  <select 
+                    value={newSlot.room}
+                    onChange={(e) => setNewSlot({...newSlot, room: e.target.value})}
+                    className="w-full bg-gray-50 border border-gray-250 rounded-lg px-3 py-1.5 text-xs focus:outline-none"
+                  >
+                    <option value="قاعة ١٠١">{trans("قاعة ١٠١", "Room 101")}</option>
+                    <option value="قاعة ١٠٢">{trans("قاعة ١٠٢", "Room 102")}</option>
+                    <option value="مختبر الحاسب">{trans("مختبر الحاسب", "Computer Lab")}</option>
+                    <option value="مختبر العلوم">{trans("مختبر العلوم", "Science Lab")}</option>
+                    <option value="المصادر والمكتبة">{trans("المصادر والمكتبة", "Library & Sources")}</option>
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">المادة المقررة *</label>
-                <select 
-                  value={newSlot.subjectId}
-                  onChange={(e) => {
-                    const sub = subjects.find(s => s.id === e.target.value);
-                    setNewSlot({
-                      ...newSlot, 
-                      subjectId: e.target.value,
-                      teacherId: sub ? sub.teacherId : newSlot.teacherId
-                    });
-                  }}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+              <div className="p-4 bg-gray-50 rounded-xl flex justify-end gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddSlot(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold cursor-pointer"
                 >
-                  {subjects.map(s => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">المعلم المكلف بالتدريس *</label>
-                <select 
-                  value={newSlot.teacherId}
-                  onChange={(e) => setNewSlot({...newSlot, teacherId: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
+                  {trans("إلغاء", "Cancel")}
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold cursor-pointer"
                 >
-                  {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-gray-700 block">القاعة أو مختبر التدريس *</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newSlot.room}
-                  onChange={(e) => setNewSlot({...newSlot, room: e.target.value})}
-                  placeholder="مثال: قاعة ١٠١ أو مختبر العلوم"
-                  className="w-full bg-gray-50 border border-gray-250 rounded-lg p-2 text-xs focus:bg-white"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3">
-                <button type="button" onClick={() => setShowAddSlot(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold">إلغاء</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-2">
-                  <Check size={14} />
-                  <span>تثبيت في الجدول</span>
+                  {trans("تسكين وتأكيد الحصة", "Confirm Slot")}
                 </button>
               </div>
             </form>

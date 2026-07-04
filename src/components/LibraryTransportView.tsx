@@ -4,6 +4,7 @@ import {
   BookOpen, Clock, AlertCircle, Play, Bookmark, Map
 } from 'lucide-react';
 import { LibraryBook, BookLoan, TransportRoute, Student } from '../types';
+import { transData } from '../lib/translateHelper';
 
 interface LibraryTransportViewProps {
   books: LibraryBook[];
@@ -14,6 +15,7 @@ interface LibraryTransportViewProps {
   setRoutes: React.Dispatch<React.SetStateAction<TransportRoute[]>>;
   students: Student[];
   activeSubTab?: 'library' | 'transport';
+  lang?: 'ar' | 'en';
 }
 
 export default function LibraryTransportView({
@@ -24,13 +26,16 @@ export default function LibraryTransportView({
   routes,
   setRoutes,
   students,
-  activeSubTab = 'library'
+  activeSubTab = 'library',
+  lang = 'ar'
 }: LibraryTransportViewProps) {
   const [currentTab, setCurrentTab] = useState<'library' | 'transport'>(activeSubTab);
   const [search, setSearch] = useState('');
+
+  const trans = (ar: string, en: string) => lang === 'ar' ? ar : en;
   
   // Library filter
-  const filteredBooks = books.filter(b => b.title.includes(search) || b.author.includes(search) || b.category.includes(search));
+  const filteredBooks = books.filter(b => b.title.toLowerCase().includes(search.toLowerCase()) || b.author.toLowerCase().includes(search.toLowerCase()) || b.category.toLowerCase().includes(search.toLowerCase()));
 
   // Live Bus Location Simulator: dynamically tick active bus index every 6 seconds to show progress
   useEffect(() => {
@@ -73,113 +78,124 @@ export default function LibraryTransportView({
     });
     setBooks(updatedBooks);
     
-    alert("تم تسجيل إرجاع الكتاب وإعادة النسخة للرف بنجاح!");
+    alert(trans("تم تسجيل إرجاع الكتاب وإعادة النسخة للرف بنجاح!", "Book marked as returned successfully!"));
   };
 
   const getStudentName = (id: string) => {
-    return students.find(s => s.id === id)?.name || 'طالب مدرسة الأندلس';
+    return students.find(s => s.id === id)?.name || trans('طالب مدرسة الأندلس', 'Al-Andalus School Student');
   };
 
   return (
-    <div className="space-y-6 text-right animate-in fade-in duration-200" id="library-transport-container">
+    <div className={`space-y-6 animate-in fade-in duration-200 ${lang === 'ar' ? 'text-right' : 'text-left'}`} id="library-transport-container">
       
       {/* Sub Tabs */}
       <div className="flex border-b border-gray-200 bg-white p-1 rounded-xl shadow-xs">
         <button
           onClick={() => { setCurrentTab('library'); setSearch(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             currentTab === 'library' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <Library size={16} />
-          <span>المكتبة المدرسية واستعارة الكتب</span>
+          <span>{trans("المكتبة المدرسية واستعارة الكتب", "School Library & Book Loans")}</span>
         </button>
         <button
           onClick={() => { setCurrentTab('transport'); setSearch(''); }}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold rounded-lg transition-all cursor-pointer ${
             currentTab === 'transport' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:bg-gray-50'
           }`}
         >
           <Bus size={16} />
-          <span>حافلات النقل المدرسي والتتبع الحي</span>
+          <span>{trans("الحافلات والنقل المدرسي المباشر", "School Buses & Live Routes")}</span>
         </button>
       </div>
 
-      {/* VIEW 1: LIBRARY CATALOG */}
+      {/* Control Ribbon */}
       {currentTab === 'library' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Books catalog grid (left columns) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="relative w-full sm:w-80">
+            <Search className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${lang === 'ar' ? 'right-3' : 'left-3'}`} size={16} />
+            <input 
+              type="text" 
+              placeholder={trans("البحث عن الكتب بالاسم، المؤلف أو التصنيف...", "Search library books by title, author, category...")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`w-full bg-gray-50 border border-gray-250 rounded-lg py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white ${
+                lang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'
+              }`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Main View Display */}
+      {currentTab === 'library' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" id="library-layout-grid">
+          {/* Books catalog (Col 1-2) */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-gray-900 text-sm">فهرس المصادر والكتب بالمكتبة</h3>
-              <div className="relative w-64">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                <input 
-                  type="text" 
-                  placeholder="ابحث بالعنوان، الكاتب أو القسم..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full bg-white border border-gray-250 rounded-lg pr-9 pl-3 py-1 text-xs"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <h3 className="font-bold text-xs text-gray-900 border-b border-gray-100 pb-2">{trans("دليل وفهرس الكتب المتوفرة بالمكتبة", "Library Books Catalog & Index")}</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredBooks.map((book) => (
-                <div key={book.id} className="bg-white p-4 rounded-xl border border-gray-150 shadow-xs flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold">{book.category}</span>
-                      <span className="text-[10px] text-gray-400 font-bold font-mono">ISBN: {book.isbn}</span>
-                    </div>
-                    <h4 className="font-bold text-xs text-gray-900">{book.title}</h4>
-                    <p className="text-[10px] text-gray-500 mt-1">الكاتب: {book.author}</p>
-                    <p className="text-[9px] text-gray-400 font-medium mt-1">الموقع: {book.location}</p>
+                <div key={book.id} className="bg-white border border-gray-150 rounded-xl p-4 flex gap-4 hover:border-blue-500/30 transition-all shadow-xs">
+                  <div className="w-16 h-24 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200 text-2xl shrink-0">
+                    📚
                   </div>
+                  <div className="flex flex-col justify-between overflow-hidden">
+                    <div>
+                      <span className="text-[9px] bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded truncate inline-block">
+                        {transData(book.category, lang)}
+                      </span>
+                      <h4 className="font-bold text-xs text-gray-950 mt-1.5 truncate">{transData(book.title, lang)}</h4>
+                      <p className="text-[10px] text-gray-400 font-medium truncate">{trans("المؤلف:", "Author:")} {transData(book.author, lang)}</p>
+                    </div>
 
-                  <div className="border-t border-gray-100 pt-3 mt-4 flex items-center justify-between text-[10px] font-bold">
-                    <span className={book.available > 0 ? 'text-green-600' : 'text-rose-600'}>
-                      المتوفر: {book.available} من {book.quantity} نسخ
-                    </span>
-                    <span className="text-gray-400">الجناح العام</span>
+                    <div className="flex items-center gap-3 text-[10px]">
+                      <span className="text-gray-400 font-bold">ISBN: <span className="font-mono text-[9px] text-gray-500">{book.isbn}</span></span>
+                      <span className={`font-black ${book.available > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                        {book.available} / {book.quantity} {trans("متوفر", "available")}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Active Loans list (right column) */}
-          <div className="bg-white p-5 rounded-xl border border-gray-150 shadow-xs lg:col-span-1 space-y-4">
-            <h4 className="font-bold text-xs text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-2">
-              <Bookmark size={15} className="text-blue-600" />
-              <span>الاستعارات والكتب المعارة حالياً</span>
-            </h4>
+          {/* Active Borrow logs (Col 3) */}
+          <div className="bg-white border border-gray-150 rounded-xl p-5 shadow-xs space-y-4">
+            <div>
+              <h3 className="font-bold text-xs text-gray-950">{trans("سجل استعارة الكتب النشطة", "Active Student Book Loans")}</h3>
+              <p className="text-[10px] text-gray-400 mt-0.5">{trans("إدارة المرتجعات وتواريخ الاسترجاع للكتب المسموحة", "Review and record returned books and overdue loans")}</p>
+            </div>
 
-            <div className="space-y-4 max-h-[450px] overflow-y-auto">
-              {loans.map((ln) => {
-                const bookTitle = books.find(b => b.id === ln.bookId)?.title || 'كتاب مدرسي';
-                const borrower = getStudentName(ln.studentId);
+            <div className="space-y-4 divide-y divide-gray-100">
+              {loans.map((loan) => {
+                const book = books.find(b => b.id === loan.bookId);
+                const isOverdue = new Date(loan.dueDate) < new Date() && loan.status === 'مستعار';
                 return (
-                  <div key={ln.id} className="border border-gray-100 p-3 rounded-lg bg-gray-50/50 flex flex-col justify-between space-y-2">
-                    <div>
-                      <h5 className="font-bold text-xs text-gray-900 leading-snug">{bookTitle}</h5>
-                      <span className="text-[10px] text-gray-500 block mt-1">المستعير: {borrower}</span>
-                      <span className="text-[9px] text-gray-400 block">موعد الإرجاع: {ln.dueDate}</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-1">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                        ln.status === 'مستعار' ? 'bg-amber-50 text-amber-600' : 'bg-green-50 text-green-700'
+                  <div key={loan.id} className="pt-3 first:pt-0 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-xs text-gray-900 leading-snug">{book ? transData(book.title, lang) : trans('كتاب مجهول', 'Unknown Book')}</h4>
+                        <p className="text-[10px] text-blue-600 font-bold mt-1">{trans("المستعير:", "Borrower:")} {transData(getStudentName(loan.studentId), lang)}</p>
+                      </div>
+                      <span className={`text-[9px] px-2 py-0.5 rounded font-bold ${
+                        loan.status === 'تم الإرجاع' ? 'bg-green-50 text-green-700' :
+                        isOverdue ? 'bg-red-50 text-red-700 animate-pulse' : 'bg-amber-50 text-amber-700'
                       }`}>
-                        {ln.status}
+                        {loan.status === 'تم الإرجاع' ? trans('تم الإرجاع', 'Returned') : isOverdue ? trans('متأخر جداً', 'Overdue') : trans('مستعار', 'Borrowed')}
                       </span>
+                    </div>
 
-                      {ln.status === 'مستعار' && (
+                    <div className="flex items-center justify-between text-[10px] text-gray-400 font-medium">
+                      <span>{trans("موعد الإرجاع:", "Due date:")} {loan.dueDate}</span>
+                      {loan.status === 'مستعار' && (
                         <button 
-                          onClick={() => handleReturnBook(ln.id, ln.bookId)}
-                          className="bg-blue-600 text-white px-2 py-1 rounded text-[9px] font-bold hover:bg-blue-700"
+                          onClick={() => handleReturnBook(loan.id, loan.bookId)}
+                          className="bg-gray-100 hover:bg-green-50 hover:text-green-600 px-2 py-1 rounded text-[9px] font-bold text-gray-700 cursor-pointer transition-colors"
                         >
-                          تأكيد الإرجاع
+                          {trans("تسجيل الإرجاع", "Mark Returned")}
                         </button>
                       )}
                     </div>
@@ -188,84 +204,75 @@ export default function LibraryTransportView({
               })}
             </div>
           </div>
-
         </div>
       )}
 
-      {/* VIEW 2: TRANSPORT Live PROGRESS */}
       {currentTab === 'transport' && (
-        <div className="space-y-6">
-          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="font-bold text-xs text-blue-950 flex items-center gap-2">
-                <Map size={16} className="text-blue-600" />
-                <span>محاكاة خطوط سير الحافلات والتعقب المباشر</span>
-              </h3>
-              <p className="text-[10px] text-blue-700 mt-1">يتحرك السائقون تلقائياً على خريطة المحطات الافتراضية باتجاه مبنى المدرسة (تحديث كل ٦ ثوانٍ)</p>
-            </div>
-            <span className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-full font-bold animate-pulse">تحديث حي نشط</span>
+        <div className="space-y-6 animate-in fade-in">
+          <div>
+            <h3 className="text-base font-bold text-gray-900">{trans("متابعة المسارات الحية للحافلات", "Live School Bus Logistics")}</h3>
+            <p className="text-xs text-gray-500">{trans("محاكاة آنية لمسار رحلة الذهاب والإياب، بيانات السائق، المشرف وحالة الطلاب", "Realtime simulation of bus routes, passenger counts, driver details, and stop schedules")}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {routes.map((route) => (
-              <div key={route.id} className="bg-white p-5 rounded-xl border border-gray-150 shadow-xs space-y-6">
-                
-                {/* Driver information */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold">{route.busNumber}</span>
-                    <h4 className="font-bold text-xs text-gray-900 mt-1.5">{route.routeName}</h4>
-                    <span className="text-[10px] text-gray-500 block mt-1">السائق: {route.driverName} | جوال: {route.driverPhone}</span>
+              <div key={route.id} className="bg-white border border-gray-150 rounded-xl p-5 shadow-xs flex flex-col justify-between hover:border-blue-500/30 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] bg-blue-50 text-blue-600 px-2.5 py-1 rounded font-black flex items-center gap-1">
+                      <Bus size={12} />
+                      <span>{transData(route.busNumber, lang)}</span>
+                    </span>
+                    <span className="text-xs text-gray-400 font-bold">{trans("الطلاب المسجلون:", "Active Passengers:")} {route.studentsCount} {trans("طالباً", "students")}</span>
                   </div>
-                  <div className="text-left">
-                    <span className="text-sm font-extrabold text-blue-600 block">{route.studentsCount}</span>
-                    <span className="text-[9px] text-gray-400 font-bold block">طلاب مسجلون بالخط</span>
-                  </div>
-                </div>
 
-                {/* Live Stations Progress Map */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-gray-500 block">مسار المحطات والاقتراب الفعلي:</span>
+                  <h4 className="font-bold text-sm text-gray-950 mb-1">{transData(route.routeName, lang)}</h4>
                   
-                  <div className="relative pt-6 pb-2" id="live-progress-station-map">
-                    {/* Background track line */}
-                    <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-100 -translate-y-1/2 rounded-full" />
-                    
-                    {/* Active filled line up to current approach */}
-                    <div 
-                      className="absolute top-1/2 right-0 h-1 bg-blue-600 -translate-y-1/2 rounded-full transition-all duration-1000"
-                      style={{ 
-                        left: `${100 - ( (route.activeLocationIndex || 0) / (route.stations.length - 1) ) * 100}%` 
-                      }}
-                    />
+                  {/* Driver and Supervisor information */}
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 text-xs mt-3">
+                    <div>
+                      <span className="text-gray-400 block text-[10px]">{trans("اسم السائق", "Bus Driver Name")}</span>
+                      <span className="font-bold text-gray-700 block mt-0.5">{transData(route.driverName, lang)}</span>
+                      <span className="text-[9px] text-gray-400 font-mono block">{route.driverPhone}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400 block text-[10px]">{trans("المشرف المصاحب", "Route Attendant")}</span>
+                      <span className="font-bold text-gray-700 block mt-0.5">{transData((route as any).supervisorName || trans("أ. صالح الحربي", "Mr. Saleh Al-Harbi"), lang)}</span>
+                    </div>
+                  </div>
 
-                    {/* Interactive stations pins layout */}
-                    <div className="flex justify-between relative">
-                      {route.stations.map((st, sIdx) => {
-                        const isCurrent = route.activeLocationIndex === sIdx;
-                        const isPassed = (route.activeLocationIndex || 0) > sIdx;
-
+                  {/* Stations Stepper visualizer */}
+                  <div className="mt-5 space-y-3">
+                    <span className="text-[10px] text-gray-400 font-black block uppercase tracking-wider">{trans("محطات المسار المتبعة للرحلة:", "Bus Route Stops Timeline:")}</span>
+                    <div className="relative flex items-center justify-between pl-2">
+                      <div className="absolute left-2.5 right-2.5 top-2.5 h-0.5 bg-gray-200 -z-10"></div>
+                      {route.stations.map((stop, i) => {
+                        const isPastOrCurrent = i <= (route.activeLocationIndex || 0);
+                        const isCurrent = i === route.activeLocationIndex;
                         return (
-                          <div key={sIdx} className="flex flex-col items-center relative group w-12">
-                            <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 transition-all duration-300 z-10 ${
-                              isCurrent ? 'bg-blue-600 border-white scale-125 ring-2 ring-blue-400' :
-                              isPassed ? 'bg-emerald-600 border-white' : 'bg-white border-gray-300'
-                            }`} />
-                            
-                            {/* Station label tooltip */}
-                            <span className={`text-[8px] font-bold mt-2 text-center leading-tight whitespace-normal ${
-                              isCurrent ? 'text-blue-600 font-extrabold scale-105' : 'text-gray-400'
+                          <div key={i} className="flex flex-col items-center text-center relative z-10">
+                            <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-[9px] font-bold border-2 transition-all ${
+                              isCurrent ? 'bg-blue-600 border-blue-600 text-white ring-4 ring-blue-100 scale-110' :
+                              isPastOrCurrent ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-400'
                             }`}>
-                              {st}
-                            </span>
+                              {i + 1}
+                            </div>
+                            <span className="text-[8px] font-bold text-gray-500 mt-1.5 max-w-[65px] leading-tight truncate">{transData(stop, lang)}</span>
                           </div>
                         );
                       })}
                     </div>
-
                   </div>
                 </div>
 
+                {/* Simulated active bus label */}
+                <div className="border-t border-gray-100 pt-3.5 mt-5 flex items-center justify-between text-xs text-blue-600 font-bold">
+                  <div className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span>
+                    <span>{trans("الموقع الحالي:", "Active Stop:")} {transData(route.stations[route.activeLocationIndex || 0], lang)}</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-bold">{trans("مسار نشط للرحلة اليومية", "Active bus journey")}</span>
+                </div>
               </div>
             ))}
           </div>
