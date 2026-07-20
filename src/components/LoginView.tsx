@@ -248,7 +248,18 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
 
         {/* Left Footer metadata */}
         <div className="relative z-10 flex items-center justify-between text-xs text-gray-500 font-mono" id="brand-sidebar-footer">
-          <span>{t.copyright}</span>
+          <span>
+            © 2026 All rights reserved by{' '}
+            <a 
+              href="https://oxa-code-website.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="text-sm text-blue-400 hover:text-blue-300 hover:underline font-bold transition-colors"
+            >
+              oxa code
+            </a>
+            . Made with love and care.
+          </span>
           <span>v2.8.5</span>
         </div>
       </div>
@@ -550,7 +561,16 @@ export default function LoginView({ onLogin, lang, setLang }: LoginViewProps) {
 
         {/* Small screen copyrights */}
         <div className="text-center text-[10px] text-gray-400 font-mono mt-4 lg:hidden">
-          {t.copyright}
+          © 2026 All rights reserved by{' '}
+          <a 
+            href="https://oxa-code-website.vercel.app/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-bold transition-colors"
+          >
+            oxa code
+          </a>
+          . Made with love and care.
         </div>
       </div>
 
